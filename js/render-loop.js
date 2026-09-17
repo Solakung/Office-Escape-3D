@@ -403,8 +403,8 @@
           return;
         }
 
-        // หากกำลังสลับองก์ 1 -> 2 ให้หยุดประมวลผลการเดินชั่วคราว
-        if (window.actTransitionActive) {
+        // หากกำลังสลับองก์ 1 -> 2 หรือกำลังอ่านจดหมายลาก่อน/ไฟดับ/หลุดเข้า Backroom ให้หยุดประมวลผลการเดินชั่วคราว
+        if (window.actTransitionActive || window.farewellSequenceActive) {
           renderer.render(scene, camera);
           return;
         }
@@ -613,6 +613,19 @@
               collectedLoreSet.add(n.text);
               playDrinkSound();
               showNoteOverlay(n.text);
+            }
+          }
+        }
+
+        // เก็บจดหมายลาก่อนของพนักงาน (Special Story Beat — องก์ 2 เท่านั้น เก็บด้วยการเดินชน ไม่ใช่ถ่ายรูป)
+        if (currentAct === 2 && specialNotes.length > 0 && !farewellSequenceActive) {
+          const sn = specialNotes[0];
+          if (sn.active) {
+            const distSN = Math.hypot(camera.position.x - sn.x, camera.position.z - sn.z);
+            if (distSN < 1.4) {
+              sn.active = false;
+              scene.remove(sn.mesh);
+              window.triggerFarewellNoteEvent(sn.text);
             }
           }
         }

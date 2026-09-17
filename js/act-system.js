@@ -146,6 +146,117 @@
     if (window.updateAct2HUD) {
       window.updateAct2HUD();
     }
+
+    // วางจดหมายลาก่อนของพนักงาน (ห่างจากจุดเข้า บังคับให้ต้องสำรวจจริง)
+    window.spawnFarewellNote();
+  };
+
+  // วางจดหมายลาก่อนของพนักงาน (Special Story Beat — องก์ 2 เท่านั้น)
+  window.spawnFarewellNote = function() {
+    if (farewellNoteTriggered || !scene || !GRID || GRID.length === 0) return; // เก็บไปแล้ว/ยังไม่พร้อม ไม่ spawn ซ้ำ
+
+    const spot = window.getRandomFloorCellNear(
+      DETECTIVE_ENTRY_POINT.x, DETECTIVE_ENTRY_POINT.z,
+      FAREWELL_NOTE_MIN_DIST, FAREWELL_NOTE_MAX_DIST
+    );
+    if (!spot) return;
+
+    // ภาพลักษณ์ต่างจาก loreNotes ทั่วไปโดยตั้งใจ — กระดาษสีอุ่น/เหลืองซีดที่ดูส่วนตัวกว่าเอกสารราชการ
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.32, 0.22),
+      new THREE.MeshStandardMaterial({ color: 0xead9a8, emissive: 0x2a2210, roughness: 0.7, side: THREE.DoubleSide })
+    );
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(spot.x, 0.05, spot.z);
+    scene.add(mesh);
+
+    specialNotes = [{ mesh, x: spot.x, z: spot.z, active: true, text: FAREWELL_NOTE_TEXT }];
+  };
+
+  // เก็บจดหมายแล้วเริ่มลำดับ: อ่าน 5 วิ (ล็อค input) -> ไฟดับ -> หลุดเข้า Deep Backroom
+  window.triggerFarewellNoteEvent = function(text) {
+    if (farewellNoteTriggered) return; // กันทริกเกอร์ซ้ำเด็ดขาด
+    farewellNoteTriggered = true;
+    farewellSequenceActive = true;
+    window.farewellSequenceActive = true; // player-controls.js/render-loop.js เช็คค่านี้เพื่อบล็อค input ทุกจุด
+
+    if (window.playDrinkSound) window.playDrinkSound(); // เสียงหยิบกระดาษ ใช้ SFX เดิมที่มีอยู่แล้ว
+    window.showFarewellNoteOverlay(text);
+
+    setTimeout(() => {
+      window.triggerLightsOutDrop();
+    }, FAREWELL_READ_MS);
+  };
+
+  // แสดงข้อความจดหมาย — ต่างจาก showNoteOverlay เดิมตรงที่ห้ามปิดเองก่อนครบเวลา
+  window.showFarewellNoteOverlay = function(text) {
+    const el = document.getElementById('note-overlay');
+    if (!el) return;
+    const titleEl = el.querySelector('.note-title');
+    if (titleEl) titleEl.innerText = '📄 จดหมายส่วนตัว';
+    el.querySelector('.note-body').innerText = text;
+    el.querySelector('.note-count').innerText = 'จดหมายส่วนตัว — ไม่ใช่หลักฐานคดี';
+    el.style.display = 'flex';
+    // ไม่มี setTimeout ปิดเองแบบ showNoteOverlay เดิม — ปิดจาก triggerLightsOutDrop() เท่านั้น
+  };
+
+  // ไฟดับทันที -> ค้างมืด -> บังคับหลุดเข้า Deep Backroom
+  window.triggerLightsOutDrop = function() {
+    const el = document.getElementById('note-overlay');
+    if (el) el.style.display = 'none';
+    const titleEl = el ? el.querySelector('.note-title') : null;
+    if (titleEl) titleEl.innerText = '📄 เอกสารที่พบ'; // คืนค่าเดิมไว้ให้ loreNotes ปกติใช้ต่อ
+
+    // ไฟดับทันที ไม่ใช่ค่อยๆ หรี่แบบ degradeMapForAct2 ปกติ
+    if (ceilingLights) { for (const l of ceilingLights) l.intensity = 0; }
+    if (ambientLight) ambientLight.intensity = 0.02;
+
+    // เฟดจอดำไวๆ ด้วย overlay เฉพาะของเหตุการณ์นี้ (แยกจาก act-transition-overlay)
+    let blackout = document.getElementById('farewell-blackout-overlay');
+    if (!blackout) {
+      blackout = document.createElement('div');
+      blackout.id = 'farewell-blackout-overlay';
+      blackout.style.position = 'fixed';
+      blackout.style.top = '0';
+      blackout.style.left = '0';
+      blackout.style.width = '100%';
+      blackout.style.height = '100%';
+      blackout.style.zIndex = '9998';
+      blackout.style.background = '#000000';
+      blackout.style.opacity = '0';
+      blackout.style.pointerEvents = 'none';
+      document.body.appendChild(blackout);
+    }
+    blackout.style.transition = `opacity ${FAREWELL_BLACKOUT_MS / 1000}s ease`;
+    blackout.style.display = 'block';
+    requestAnimationFrame(() => { blackout.style.opacity = '1'; });
+
+    setTimeout(() => {
+      playerSanity = Math.max(0, playerSanity - FAREWELL_SANITY_PENALTY);
+
+      // "หลุด" เข้า Deep Backroom จริงจัง — เรียก enterDeepState() ทันที ไม่รอเงื่อนไขเวลา/sanity ปกติ
+      if (!deepStateActive && window.enterDeepState) window.enterDeepState();
+
+      // ย้ายตำแหน่งผู้เล่นตอนจอยังมืดอยู่ ให้รู้สึกว่า "ร่วง" ไปอีกจุด ไม่ใช่ยืนนิ่งที่เดิม
+      const dropSpot = window.getRandomFloorCellNear(camera.position.x, camera.position.z, 4, 12);
+      if (dropSpot) camera.position.set(dropSpot.x, camera.position.y, dropSpot.z);
+
+      setTimeout(() => {
+        blackout.style.transition = 'opacity 1.5s ease';
+        blackout.style.opacity = '0';
+        setTimeout(() => { blackout.style.display = 'none'; }, 1500);
+
+        const notif = document.getElementById('item-notification');
+        if (notif) {
+          notif.innerHTML = 'ไฟดับ... เมื่อมันติดอีกครั้ง ที่นี่ไม่ใช่ที่เดิมอีกต่อไป';
+          notif.style.display = 'block';
+          setTimeout(() => { notif.style.display = 'none'; }, 4000);
+        }
+
+        farewellSequenceActive = false;
+        window.farewellSequenceActive = false;
+      }, FAREWELL_HOLD_DARK_MS);
+    }, FAREWELL_BLACKOUT_MS);
   };
 
   // วางอาวุธที่เก็บได้ใน Backrooms (Act 2) ทั่วแผนที่

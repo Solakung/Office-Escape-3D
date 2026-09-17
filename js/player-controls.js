@@ -155,7 +155,7 @@
     // Controls
     // -------------------------------------------------------------
     window.addEventListener('keydown', (e) => { 
-      if (window.actTransitionActive) return;
+      if (window.actTransitionActive || window.farewellSequenceActive) return;
       if (keys.hasOwnProperty(e.code)) {
         keys[e.code] = true;
         // ถ้าย้ายที่ตอนกำลังพันแผล ให้ยกเลิกการทำแผล
@@ -172,7 +172,7 @@
     });
     window.addEventListener('keyup', (e) => { if (keys.hasOwnProperty(e.code)) keys[e.code] = false; });
     window.addEventListener('keydown', (e) => {
-      if (window.actTransitionActive) return;
+      if (window.actTransitionActive || window.farewellSequenceActive) return;
       if (e.code === 'KeyF') triggerCameraFlash();
       if (e.code === 'KeyE') toggleHiding();
       if (e.code === 'KeyQ') useAlmondBottle();
@@ -202,7 +202,7 @@
 
     // คลิกซ้ายโจมตี (Act 2)
     document.addEventListener('mousedown', (e) => {
-      if (window.actTransitionActive) return;
+      if (window.actTransitionActive || window.farewellSequenceActive) return;
       if (e.button === 0 && currentAct === 2 && document.pointerLockElement === document.body && window.gameEngineStarted && !isJumpscareActive) {
         if (window.onAttackInput) window.onAttackInput();
       }
