@@ -26,6 +26,29 @@
       }
     }
 
+    function updateFlashlightIndicator() {
+      const indicator = document.getElementById('flashlight-indicator');
+      if (!indicator) return;
+      if (typeof firstBlackoutOccurred !== 'undefined' && !firstBlackoutOccurred) {
+        indicator.style.display = 'none'; // ยังไม่มีกล้องให้ใช้ก่อนไฟดับครั้งแรก
+        return;
+      }
+      const minCharge = (typeof CAMERA_MIN_CHARGE_TO_USE !== 'undefined') ? CAMERA_MIN_CHARGE_TO_USE : 24;
+      const charge = (typeof cameraCharge !== 'undefined') ? cameraCharge : 100;
+      if (charge < minCharge) {
+        indicator.style.color = '#ff8888';
+        indicator.innerText = `กล้องกำลังชาร์จ ${Math.floor(charge)}%`;
+        indicator.style.display = 'block';
+      } else if (charge < 60) {
+        indicator.style.color = '#ffb84d';
+        indicator.innerText = `พลังงานกล้อง ${Math.floor(charge)}%`;
+        indicator.style.display = 'block';
+      } else {
+        indicator.style.display = 'none';
+      }
+    }
+    window.updateFlashlightIndicator = updateFlashlightIndicator;
+
     // -------------------------------------------------------------
     // Note Overlay (แสดงข้อความโน้ตที่เก็บได้ ค้างจอนานกว่า item-notification ปกติ)
     // -------------------------------------------------------------

@@ -279,6 +279,11 @@
 
       document.getElementById('noise-canvas').style.opacity = 0;
       document.getElementById('jumpscare-strobe').style.display = 'none';
+      if (typeof jumpscareStrobeAudioTriggered !== 'undefined') jumpscareStrobeAudioTriggered = false;
+      if (typeof window !== 'undefined') {
+        window.jumpscareStrobeAudioTriggered = false;
+        if (window.stopJumpscareStrobeStaticSound) window.stopJumpscareStrobeStaticSound();
+      }
       if (monsterSoundGain && audioCtx) monsterSoundGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
       if (shadowSoundGain && audioCtx) shadowSoundGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
       if (dullerSoundGain && audioCtx) dullerSoundGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
@@ -331,7 +336,11 @@
       cameraFlashActive = false;
       if (flashlight) flashlight.intensity = 0;
       recentNoise = null;
-      updateFlashlightIndicator(); // กล้องจะใช้ได้ก็ต่อเมื่อไฟดับครั้งแรกเกิดขึ้น
+      if (typeof updateFlashlightIndicator === 'function') {
+        updateFlashlightIndicator();
+      } else if (typeof window !== 'undefined' && window.updateFlashlightIndicator) {
+        window.updateFlashlightIndicator();
+      } // กล้องจะใช้ได้ก็ต่อเมื่อไฟดับครั้งแรกเกิดขึ้น
       const noteOverlay = document.getElementById('note-overlay');
       if (noteOverlay) noteOverlay.style.display = 'none';
       lastExitLockedNoticeTime = 0;

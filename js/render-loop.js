@@ -7,9 +7,6 @@
       };
     }
 
-    const getRandomFloorCell = (...args) => (window.getRandomFloorCell ? window.getRandomFloorCell(...args) : new THREE.Vector3(MAP_SIZE * CELL / 2, 0, MAP_SIZE * CELL / 2));
-    const getRandomFloorCellNear = (...args) => (window.getRandomFloorCellNear ? window.getRandomFloorCellNear(...args) : null);
-
     // -------------------------------------------------------------
     // Peripheral Vision Glitch: ร่างเงาวาบสั้นๆ ที่ขอบจอ ไม่ใช่ entity จริง
     // สุ่มเวลา/ตำแหน่ง/ฝั่งทุกครั้ง เพื่อให้ผู้เล่นไม่แน่ใจว่าเห็นจริงหรือหลอนไปเอง
@@ -343,6 +340,15 @@
           // เอฟเฟกต์แฟลชกล้องวงจรปิด/กล้องแฮนดีแคมแบบ Kane Pixels (สลับขาวจ้า นีออนกระพริบ และมืดมิด)
           const strobe = document.getElementById('jumpscare-strobe');
           const jsElapsed = now - jumpscareStartTime;
+
+          // เสียงคลื่นไฟฟ้าสถิตความถี่สูงสั่นกระตุกพร้อมกับโอเวอร์เลย์ #jumpscare-strobe ทันที
+          if (!window.jumpscareStrobeAudioTriggered) {
+            window.jumpscareStrobeAudioTriggered = true;
+            if (window.playJumpscareStrobeStaticSound) {
+              window.playJumpscareStrobeStaticSound();
+            }
+          }
+
           if (jsElapsed < 120) {
             // เสี้ยววินาทีแรก: แฟลชขาวโพลนตาบอดทันที
             strobe.style.background = '#ffffff';
@@ -373,6 +379,10 @@
           if (jsElapsed > 1600) {
             isJumpscareActive = false;
             strobe.style.display = 'none';
+            window.jumpscareStrobeAudioTriggered = false;
+            if (window.stopJumpscareStrobeStaticSound) {
+              window.stopJumpscareStrobeStaticSound();
+            }
             camera.fov = 70;
             camera.updateProjectionMatrix();
 
@@ -1561,6 +1571,24 @@
         }
         if (document.getElementById('over-menu').style.display === 'flex') {
           renderNoise();
+        }
+
+        // Office Late-Night Menu Camera Pan & Ambient View:
+        // ค่อยๆ แพนกล้องช้าๆ ส่องโต๊ะทำงานและบรรยากาศออฟฟิศยามค่ำคืน
+        const startMenuEl = document.getElementById('start-menu');
+        if (startMenuEl && startMenuEl.style.display !== 'none') {
+          const menuTime = now * 0.00035;
+          const spawnDeskX = 9.0;
+          const spawnDeskZ = 9.0;
+          camera.position.x = spawnDeskX + Math.sin(menuTime) * 1.7;
+          camera.position.z = spawnDeskZ + Math.cos(menuTime) * 1.7;
+          camera.position.y = 1.55 + Math.sin(menuTime * 1.2) * 0.03;
+          camera.lookAt(spawnDeskX, 0.95, spawnDeskZ);
+
+          // แสงไฟออฟฟิศสว่างสบายตา ไม่กระพริบชวนหลอน
+          if (ceilingLights && ceilingLights.length > 0) {
+            ceilingLights[0].intensity = 0.85;
+          }
         }
       }
 

@@ -325,6 +325,31 @@
       return t;
     }
 
+    // Bump Map พรมออฟฟิศปกติก่อนไฟดับ
+    function genOfficeCarpetBump() {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#808080';
+      ctx.fillRect(0, 0, 128, 128);
+
+      ctx.strokeStyle = '#505050';
+      ctx.lineWidth = 1.5;
+      for (let x = 0; x < 128; x += 32) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 128); ctx.stroke();
+      }
+      for (let y = 0; y < 128; y += 32) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(128, y); ctx.stroke();
+      }
+
+      addCanvasNoise(ctx, 128, 128, 0.45, 0.2, false);
+
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(70, 70);
+      return t;
+    }
+
     // เพดานออฟฟิศปกติก่อนไฟดับ (Acoustic ceiling tiles)
     function genAuthenticCeilingTex() {
       const c = document.createElement('canvas');
@@ -343,6 +368,29 @@
       ctx.stroke();
 
       addCanvasNoise(ctx, 256, 256, 0.18, 0.08, true);
+
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(70, 70);
+      return t;
+    }
+
+    function genAuthenticCeilingBump() {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#808080';
+      ctx.fillRect(0, 0, 128, 128);
+
+      ctx.strokeStyle = '#404040';
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(0, 0, 128, 128);
+      ctx.beginPath();
+      ctx.moveTo(64, 0); ctx.lineTo(64, 128);
+      ctx.moveTo(0, 64); ctx.lineTo(128, 64);
+      ctx.stroke();
+
+      addCanvasNoise(ctx, 128, 128, 0.35, 0.15, false);
 
       const t = new THREE.CanvasTexture(c);
       t.wrapS = t.wrapT = THREE.RepeatWrapping;

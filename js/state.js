@@ -185,6 +185,8 @@
     let jumpscareTargetRig = null;
     let isJumpscareActive = false;
     let jumpscareStartTime = 0;
+    var jumpscareStrobeAudioTriggered = false;
+    window.jumpscareStrobeAudioTriggered = false;
 
     let playerSpawn = new THREE.Vector3(5, 1.5, 5);
     let exitPos = new THREE.Vector3(0, 0, 0);
@@ -225,8 +227,8 @@
     const CHEAT_MAX_DIST = 36;   // เดิม 27
 
     let wallMat, floorMat, ceilingMat, boxGeo;
-    let officeWallTex, backroomsWallTex, backroomsWallBump;
-    let officeFloorTex, backroomsFloorTex, backroomsFloorBump, officeCeilingTex, backroomsCeilingTex, backroomsCeilingBump;
+    let officeWallTex, officeWallBump, backroomsWallTex, backroomsWallBump;
+    let officeFloorTex, officeFloorBump, backroomsFloorTex, backroomsFloorBump, officeCeilingTex, officeCeilingBump, backroomsCeilingTex, backroomsCeilingBump;
     let airborneParticles = null, airborneParticleGeo = null;
     let isTouchDevice = false;
     const OFFICE_AMBIENT_COLOR = 0xf3f0e6;
@@ -356,14 +358,14 @@
 
     // ตัวแปรส่วนกลางสำหรับ Player Controls และ Render Loop
     const MOVE_ACCEL_RATE = 14;
-    let smoothMoveFwd = 0, smoothMoveSide = 0;
-    let pendingLookDX = 0, pendingLookDY = 0;
-    let lookTouchId = null;
-    let lastLookX = 0, lastLookY = 0;
-    let footstepDist = 0;
-    let nextPeripheralGlitchTime = 0;
-    let dreadVignetteEl = null, subliminalFlashEl = null, camFlashOverlayEl = null;
-    let acidSplashEl = null, gapWarpEl = null, viewportEl = null, hudEl = null;
-    let chromaEl = null, peripheralGlitchEl = null, peripheralFigureEl = null, lockerSlitEl = null;
-    let staticCanvas = null, staticCtx = null;
+    var smoothMoveFwd = 0, smoothMoveSide = 0;
+    var pendingLookDX = 0, pendingLookDY = 0;
+    var lookTouchId = null;
+    var lastLookX = 0, lastLookY = 0;
+    var footstepDist = 0;
+    var nextPeripheralGlitchTime = 0;
+    var dreadVignetteEl = null, subliminalFlashEl = null, camFlashOverlayEl = null;
+    var acidSplashEl = null, gapWarpEl = null, viewportEl = null, hudEl = null;
+    var chromaEl = null, peripheralGlitchEl = null, peripheralFigureEl = null, lockerSlitEl = null;
+    var staticCanvas = null, staticCtx = null;
 

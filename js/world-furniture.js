@@ -45,22 +45,29 @@
       scene.add(camera);
 
       officeWallTex = genOfficeWallTex();
+      officeWallBump = genOfficeWallBump();
       backroomsWallTex = genAuthenticWallTex();
       backroomsWallBump = genAuthenticWallBump();
       officeFloorTex = genOfficeCarpetTex();
+      officeFloorBump = genOfficeCarpetBump();
       backroomsFloorTex = genAuthenticCarpetTex();
       backroomsFloorBump = genAuthenticCarpetBump();
       officeCeilingTex = genAuthenticCeilingTex();
+      officeCeilingBump = genAuthenticCeilingBump();
       backroomsCeilingTex = genSickCeilingTex();
       backroomsCeilingBump = genSickCeilingBump();
-      wallMat = new THREE.MeshLambertMaterial({ map: officeWallTex });
-      floorMat = new THREE.MeshLambertMaterial({ map: officeFloorTex });
-      ceilingMat = new THREE.MeshLambertMaterial({ map: officeCeilingTex });
+      wallMat = new THREE.MeshLambertMaterial({ map: officeWallTex, bumpMap: officeWallBump, bumpScale: 0.045 });
+      floorMat = new THREE.MeshLambertMaterial({ map: officeFloorTex, bumpMap: officeFloorBump, bumpScale: 0.035 });
+      ceilingMat = new THREE.MeshLambertMaterial({ map: officeCeilingTex, bumpMap: officeCeilingBump, bumpScale: 0.035 });
       boxGeo = new THREE.BoxGeometry(CELL, HEIGHT, CELL);
+
+      // Apply initial high-definition pixel ratio for crisp rendering
+      const initialDpr = window.devicePixelRatio || 1;
+      renderer.setPixelRatio(Math.min(2.0, initialDpr));
 
       // วอร์มอัพเทกซ์เจอร์ผนัง/พื้น/เพดานฝั่ง Backrooms ขึ้น GPU ล่วงหน้าตั้งแต่ตอนโหลดเกม
       // กันไม่ให้กระตุกตอนสลับผนังตอนไฟดับครั้งแรก (การอัปโหลดเทกซ์เจอร์ใหม่ครั้งแรกกินเฟรมพอสมควร)
-      [backroomsWallTex, backroomsWallBump, backroomsFloorTex, backroomsFloorBump, backroomsCeilingTex, backroomsCeilingBump].forEach(tex => {
+      [officeWallTex, officeWallBump, backroomsWallTex, backroomsWallBump, officeFloorTex, officeFloorBump, backroomsFloorTex, backroomsFloorBump, officeCeilingTex, officeCeilingBump, backroomsCeilingTex, backroomsCeilingBump].forEach(tex => {
         if (!tex) return;
         const warmup = new THREE.Mesh(
           new THREE.PlaneGeometry(0.01, 0.01),

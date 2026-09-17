@@ -43,25 +43,28 @@
         }
       }
     }
-    function updateFlashlightIndicator() {
-      const indicator = document.getElementById('flashlight-indicator');
-      if (!indicator) return;
-      if (!firstBlackoutOccurred) {
-        indicator.style.display = 'none'; // ยังไม่มีกล้องให้ใช้ก่อนไฟดับครั้งแรก
-        return;
-      }
-      if (cameraCharge < CAMERA_MIN_CHARGE_TO_USE) {
-        indicator.style.color = '#ff8888';
-        indicator.innerText = `กล้องกำลังชาร์จ ${Math.floor(cameraCharge)}%`;
-        indicator.style.display = 'block';
-      } else if (cameraCharge < 60) {
-        indicator.style.color = '#ffb84d';
-        indicator.innerText = `พลังงานกล้อง ${Math.floor(cameraCharge)}%`;
-        indicator.style.display = 'block';
-      } else {
-        indicator.style.display = 'none';
-      }
+    if (!window.updateFlashlightIndicator) {
+      window.updateFlashlightIndicator = function() {
+        const indicator = document.getElementById('flashlight-indicator');
+        if (!indicator) return;
+        if (!firstBlackoutOccurred) {
+          indicator.style.display = 'none'; // ยังไม่มีกล้องให้ใช้ก่อนไฟดับครั้งแรก
+          return;
+        }
+        if (cameraCharge < CAMERA_MIN_CHARGE_TO_USE) {
+          indicator.style.color = '#ff8888';
+          indicator.innerText = `กล้องกำลังชาร์จ ${Math.floor(cameraCharge)}%`;
+          indicator.style.display = 'block';
+        } else if (cameraCharge < 60) {
+          indicator.style.color = '#ffb84d';
+          indicator.innerText = `พลังงานกล้อง ${Math.floor(cameraCharge)}%`;
+          indicator.style.display = 'block';
+        } else {
+          indicator.style.display = 'none';
+        }
+      };
     }
+    var updateFlashlightIndicator = window.updateFlashlightIndicator;
 
     // -------------------------------------------------------------
     // ดื่มนมอัลมอนด์จากกระเป๋า (เก็บสะสมไว้ก่อน ใช้ตอนต้องการจริงๆ)
@@ -100,7 +103,7 @@
       return best;
     }
 
-    const lockerSlitEl = document.getElementById('locker-slit');
+    lockerSlitEl = document.getElementById('locker-slit');
 
     function toggleHiding() {
       if (!window.gameEngineStarted || isJumpscareActive) return;
@@ -367,35 +370,6 @@
     }
     window.isWall = isWall;
 
-    // ฟังก์ชันสุ่มจุดลาดตระเวน (Waypoint Picker)
-    function getRandomFloorCell() {
-      for (let i = 0; i < 30; i++) {
-        const r = 2 + Math.floor(Math.random() * (MAP_SIZE - 4));
-        const c = 2 + Math.floor(Math.random() * (MAP_SIZE - 4));
-        if (GRID[r] && GRID[r][c] === 0) {
-          return new THREE.Vector3(c * CELL + CELL / 2, 0, r * CELL + CELL / 2);
-        }
-      }
-      return new THREE.Vector3(MAP_SIZE * CELL / 2, 0, MAP_SIZE * CELL / 2);
-    }
-    window.getRandomFloorCell = getRandomFloorCell;
-
-    // ฟังก์ชันสุ่มจุด "โกง" ให้ entity วาปไปโผล่ใกล้ๆผู้เล่น (อยู่ในช่วงระยะ minDist-maxDist)
-    function getRandomFloorCellNear(px, pz, minDist, maxDist) {
-      for (let i = 0; i < 24; i++) {
-        const ang = Math.random() * Math.PI * 2;
-        const dist = minDist + Math.random() * (maxDist - minDist);
-        const wx = px + Math.cos(ang) * dist;
-        const wz = pz + Math.sin(ang) * dist;
-        const c = Math.floor(wx / CELL);
-        const r = Math.floor(wz / CELL);
-        if (r > 1 && r < MAP_SIZE - 2 && c > 1 && c < MAP_SIZE - 2 && GRID[r] && GRID[r][c] === 0) {
-          return new THREE.Vector3(c * CELL + CELL / 2, 0, r * CELL + CELL / 2);
-        }
-      }
-      return null; // หาไม่เจอ (เช่นติดผนังหมด) ก็ไม่ต้องโกงรอบนี้
-    }
-
     let lastTime = performance.now();
 
     // นาฬิกา CCTV มุมจอ — เดินตามเวลาจริงไปเรื่อยๆ ตั้งแต่โหลดหน้าเว็บ ไม่ผูกกับสถานะเกม
@@ -433,8 +407,6 @@
     peripheralGlitchEl = document.getElementById('peripheral-glitch');
     peripheralFigureEl = peripheralGlitchEl ? peripheralGlitchEl.querySelector('.figure') : null;
     nextPeripheralGlitchTime = performance.now() + 13000 + Math.random() * 9000;
-
-    window.getRandomFloorCellNear = getRandomFloorCellNear;
 
     // ปุ่ม Touch สำหรับมือถือใน Act 2
     const attackTouchBtn = document.getElementById('attack-touch-btn');

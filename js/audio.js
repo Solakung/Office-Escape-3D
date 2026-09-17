@@ -545,6 +545,156 @@
         noiseFilter.connect(noiseG);
         noiseG.connect(audioCtx.destination);
         noiseSrc.start(now);
+
+        // Trigger simultaneous high-frequency jarring strobe static sound
+        playJumpscareStrobeStaticSound();
+      } catch(e) {}
+    }
+
+    // -------------------------------------------------------------
+    // High-Frequency Jarring Static Sound Effect (Synced with #jumpscare-strobe)
+    // เสียงคลื่นไฟฟ้าสถิตความถี่สูงสั่นกระตุก แตกซ่าบาดหู รบกวนสัญญาณภาพพร้อมกับแสงแฟลชสโตรบ
+    // -------------------------------------------------------------
+    let jumpscareStrobeAudioNodes = null;
+
+    function stopJumpscareStrobeStaticSound() {
+      if (!jumpscareStrobeAudioNodes) return;
+      try {
+        const { gain, sources } = jumpscareStrobeAudioNodes;
+        if (audioCtx && gain) {
+          gain.gain.cancelScheduledValues(audioCtx.currentTime);
+          gain.gain.setValueAtTime(gain.gain.value, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
+        }
+        setTimeout(() => {
+          if (sources && Array.isArray(sources)) {
+            sources.forEach(s => {
+              try { s.stop(); s.disconnect(); } catch(e) {}
+            });
+          }
+        }, 60);
+      } catch(e) {}
+      jumpscareStrobeAudioNodes = null;
+    }
+
+    function playJumpscareStrobeStaticSound() {
+      if (!audioCtx || audioCtx.state !== 'running') return;
+      try {
+        stopJumpscareStrobeStaticSound();
+        const now = audioCtx.currentTime;
+        const dur = 1.6; // Matches the jumpscare strobe duration (~1600ms)
+        const sources = [];
+
+        // 1. Master Strobe Gain Node with instantaneous zero-attack impact
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(0.0001, now);
+        masterGain.gain.linearRampToValueAtTime(0.92, now + 0.003); // Jarring instant hit in 3ms
+        masterGain.gain.setValueAtTime(0.9, now + 0.95);
+        masterGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+        masterGain.connect(audioCtx.destination);
+
+        // 2. Piercing High-Frequency Static Noise Layer (Searing TV/CCTV Static Snow)
+        const sampleCount = Math.floor(audioCtx.sampleRate * dur);
+        const noiseBuf = audioCtx.createBuffer(1, sampleCount, audioCtx.sampleRate);
+        const data = noiseBuf.getChannelData(0);
+        for (let i = 0; i < sampleCount; i++) {
+          // Sharp non-linear digital static noise with harsh bit spikes
+          let val = Math.random() * 2 - 1;
+          if (Math.random() < 0.05) {
+            val = (Math.random() > 0.5 ? 1.0 : -1.0) * (0.8 + Math.random() * 0.2);
+          }
+          data[i] = val;
+        }
+        const noiseSrc = audioCtx.createBufferSource();
+        noiseSrc.buffer = noiseBuf;
+        sources.push(noiseSrc);
+
+        // High-pass filter stripping everything below 4,200 Hz for painful ear-piercing treble
+        const hpFilter = audioCtx.createBiquadFilter();
+        hpFilter.type = 'highpass';
+        hpFilter.frequency.setValueAtTime(4200, now);
+        hpFilter.frequency.linearRampToValueAtTime(5600, now + 0.5);
+
+        // Resonant Peaking filter boosting 7,200 Hz - 9,200 Hz (+16dB) for harsh CRT static sizzle
+        const peakFilter = audioCtx.createBiquadFilter();
+        peakFilter.type = 'peaking';
+        peakFilter.frequency.setValueAtTime(7600, now);
+        peakFilter.Q.setValueAtTime(5.2, now);
+        peakFilter.gain.setValueAtTime(16, now);
+
+        // 3. High-Pitch Dissonant Heterodyne Whine (Extreme FM screaming circuit feedback)
+        const whistleOsc = audioCtx.createOscillator();
+        whistleOsc.type = 'sawtooth';
+        whistleOsc.frequency.setValueAtTime(6200, now);
+        whistleOsc.frequency.exponentialRampToValueAtTime(4600, now + dur);
+        sources.push(whistleOsc);
+
+        const modOsc = audioCtx.createOscillator();
+        modOsc.type = 'square';
+        modOsc.frequency.setValueAtTime(1420, now);
+        modOsc.frequency.linearRampToValueAtTime(840, now + 0.8);
+        sources.push(modOsc);
+
+        const modGain = audioCtx.createGain();
+        modGain.gain.setValueAtTime(1600, now);
+        modGain.gain.exponentialRampToValueAtTime(300, now + 1.2);
+        modOsc.connect(modGain);
+        modGain.connect(whistleOsc.frequency);
+
+        const whistleGain = audioCtx.createGain();
+        whistleGain.gain.setValueAtTime(0.32, now);
+        whistleGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+        whistleOsc.connect(whistleGain);
+
+        // 4. Stutter Chopper LFO (Mirrors the violent high-speed flickering of the #jumpscare-strobe overlay)
+        const strobeChopper = audioCtx.createOscillator();
+        strobeChopper.type = 'square';
+        strobeChopper.frequency.setValueAtTime(52, now); // 52 Hz rapid jarring stutter
+        strobeChopper.frequency.linearRampToValueAtTime(28, now + dur);
+        sources.push(strobeChopper);
+
+        const chopGain = audioCtx.createGain();
+        chopGain.gain.setValueAtTime(0.48, now);
+        strobeChopper.connect(chopGain);
+
+        // Static Bus
+        const staticBus = audioCtx.createGain();
+        staticBus.gain.setValueAtTime(0.78, now);
+        chopGain.connect(staticBus.gain);
+
+        // 5. Hard-Clipping Waveshaper Distortion (Blown-out audio distortion)
+        const shaper = audioCtx.createWaveShaper();
+        const curve = new Float32Array(256);
+        for (let i = 0; i < 256; i++) {
+          const x = (i / 255) * 2 - 1;
+          curve[i] = Math.max(-0.88, Math.min(0.88, x * 4.5));
+        }
+        shaper.curve = curve;
+        shaper.oversample = '2x';
+
+        // Connect noise into filters -> distortion -> static bus
+        noiseSrc.connect(hpFilter);
+        hpFilter.connect(peakFilter);
+        peakFilter.connect(shaper);
+        shaper.connect(staticBus);
+        whistleGain.connect(shaper);
+
+        staticBus.connect(masterGain);
+
+        // Start all sound generators
+        noiseSrc.start(now);
+        noiseSrc.stop(now + dur);
+        whistleOsc.start(now);
+        whistleOsc.stop(now + dur);
+        modOsc.start(now);
+        modOsc.stop(now + dur);
+        strobeChopper.start(now);
+        strobeChopper.stop(now + dur);
+
+        jumpscareStrobeAudioNodes = {
+          gain: masterGain,
+          sources: sources
+        };
       } catch(e) {}
     }
 
@@ -1025,7 +1175,51 @@
       osc.stop(now + 3.2);
     };
 
+    window.playMenuHoverSound = function() {
+      if (!audioCtx || audioCtx.state !== 'running') return;
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(580, now);
+        osc.frequency.exponentialRampToValueAtTime(740, now + 0.035);
+        gain.gain.setValueAtTime(0.025, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      } catch(e) {}
+    };
+
+    window.playMenuSelectSound = function() {
+      if (!audioCtx || audioCtx.state !== 'running') return;
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.setValueAtTime(660, now + 0.04);
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(780, now + 0.04);
+        gain.gain.setValueAtTime(0.045, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+        osc.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc2.start(now + 0.04);
+        osc.stop(now + 0.12);
+        osc2.stop(now + 0.12);
+      } catch(e) {}
+    };
+
     window.playViolentJumpscareSound = playViolentJumpscareSound;
+    window.playJumpscareStrobeStaticSound = playJumpscareStrobeStaticSound;
+    window.stopJumpscareStrobeStaticSound = stopJumpscareStrobeStaticSound;
     window.playDrinkSound = playDrinkSound;
     window.playSprintSound = playSprintSound;
     window.playGlitchShiftSound = playGlitchShiftSound;
@@ -1034,4 +1228,6 @@
     window.playAcidSpitSound = playAcidSpitSound;
     window.playAcidSizzleSound = playAcidSizzleSound;
     window.playGapPullSound = playGapPullSound;
+    window.playMenuHoverSound = playMenuHoverSound;
+    window.playMenuSelectSound = playMenuSelectSound;
 

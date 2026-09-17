@@ -133,7 +133,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(12, 14, 9, 0.95);
+      background: radial-gradient(circle at 50% 45%, rgba(14, 16, 10, 0.72) 0%, rgba(8, 10, 6, 0.94) 75%, rgba(4, 5, 3, 0.98) 100%);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -142,52 +142,189 @@
       z-index: 1000;
       padding: 24px;
       text-align: center;
-      cursor: pointer;
       touch-action: manipulation !important;
       pointer-events: auto !important;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
     }
-    .dialog-layer h1 {
-      font-size: 26px;
-      letter-spacing: 3px;
+
+    /* Clean Centered Start Menu & Dialogs (Compact, non-horror office overtime theme) */
+    #start-menu {
+      background: radial-gradient(circle at 50% 50%, rgba(16, 22, 30, 0.76) 0%, rgba(10, 14, 20, 0.94) 100%) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 16px;
+      cursor: default;
+    }
+
+    .office-menu-card {
+      background: rgba(22, 28, 38, 0.95);
+      border: 1px solid rgba(140, 170, 210, 0.22);
+      border-radius: 8px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06) inset;
+      width: 100%;
+      max-width: 440px;
+      padding: 24px 26px;
+      text-align: center;
+      position: relative;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    @media (max-width: 480px) {
+      .office-menu-card {
+        padding: 18px 16px;
+        max-width: 95%;
+      }
+    }
+
+    .office-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(56, 84, 120, 0.25);
+      border: 1px solid rgba(120, 160, 220, 0.35);
+      border-radius: 14px;
+      font-size: 11.5px;
+      color: #a5c7f2;
       margin-bottom: 12px;
-      color: #e5cb5b;
-      pointer-events: none;
+      letter-spacing: 0.5px;
     }
-    .dialog-layer p {
-      font-size: 13px;
-      max-width: 460px;
-      line-height: 1.6;
-      margin-bottom: 24px;
-      color: #aaa580;
-      pointer-events: none;
+    .office-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
     }
-    .action-btn {
-      background: #2b2f1c;
-      color: #f0e6a8;
-      border: 2px solid #8c864d;
-      padding: 16px 38px;
-      font-size: 16px;
-      font-family: inherit;
+
+    .office-title-main {
+      font-size: 24px;
+      font-weight: 800;
       letter-spacing: 2px;
-      font-weight: bold;
+      color: #f1f5f9;
+      line-height: 1.2;
+      text-transform: uppercase;
+      margin: 0 0 4px 0;
+    }
+    .office-title-sub {
+      font-size: 12.5px;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      margin-bottom: 16px;
+    }
+
+    .office-synopsis {
+      background: rgba(15, 23, 36, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 6px;
-      box-shadow: 0 0 14px rgba(140, 134, 77, 0.5);
+      padding: 12px 14px;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      text-align: left;
+      margin-bottom: 18px;
+    }
+    .office-objectives {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.12);
+      font-size: 11px;
+      color: #8fa5bd;
+    }
+
+    /* Menu Navigation Buttons */
+    .office-nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      width: 100%;
+      margin-bottom: 14px;
+    }
+    .office-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 11px 18px;
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 13.5px;
+      font-family: inherit;
+      font-weight: bold;
+      letter-spacing: 1px;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: all 0.18s ease;
+    }
+    .office-btn:hover {
+      background: rgba(45, 60, 88, 0.95);
+      border-color: #60a5fa;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
+    }
+    .office-btn:active {
+      transform: scale(0.98);
+    }
+    .office-btn.primary-btn {
+      background: #2563eb;
+      border-color: #3b82f6;
+      color: #ffffff;
+      padding: 13px 20px;
+      font-size: 14.5px;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+    .office-btn.primary-btn:hover {
+      background: #1d4ed8;
+      border-color: #93c5fd;
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+    }
+
+    .office-footer-hint {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    /* Action buttons for other dialogs */
+    .action-btn {
+      background: #1e293b;
+      color: #f1f5f9;
+      border: 1px solid #475569;
+      padding: 10px 24px;
+      font-size: 13.5px;
+      font-family: inherit;
+      letter-spacing: 1px;
+      font-weight: bold;
+      border-radius: 4px;
       touch-action: manipulation !important;
       pointer-events: auto !important;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .action-btn:hover {
+      background: #334155;
+      color: #ffffff;
+      border-color: #94a3b8;
     }
     .action-btn:active {
-      background: #4e532b;
-      color: #ffffff;
       transform: scale(0.97);
     }
     .action-btn.secondary-btn {
       background: transparent;
-      color: #cfc98a;
-      border: 2px solid #6b6640;
-      box-shadow: none;
+      color: #94a3b8;
+      border: 1px solid #334155;
     }
-    .action-btn.secondary-btn:active {
-      background: rgba(140, 134, 77, 0.25);
+    .action-btn.secondary-btn:hover {
+      background: rgba(51, 65, 85, 0.4);
       color: #ffffff;
     }
     .menu-btn-row {
@@ -195,6 +332,121 @@
       gap: 12px;
       flex-wrap: wrap;
       justify-content: center;
+    }
+
+    /* Settings Card */
+    #settings-menu {
+      overflow-y: auto;
+      justify-content: center;
+    }
+    .office-settings-card {
+      background: rgba(22, 28, 38, 0.96);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.65);
+      border-radius: 8px;
+      width: 100%;
+      max-width: 440px;
+      padding: 22px 24px;
+      text-align: left;
+    }
+    .office-settings-card h2 {
+      font-size: 18px;
+      letter-spacing: 1.5px;
+      color: #f1f5f9;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .office-settings-sub {
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-bottom: 18px;
+    }
+    .office-opt-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .office-opt-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 5px;
+    }
+    .office-opt-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .office-opt-title {
+      font-size: 12.5px;
+      font-weight: bold;
+      color: #e2e8f0;
+      letter-spacing: 0.5px;
+    }
+    .office-opt-desc {
+      font-size: 10.5px;
+      color: #64748b;
+    }
+    .office-seg-control {
+      display: flex;
+      gap: 4px;
+      background: rgba(10, 15, 25, 0.85);
+      padding: 3px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .office-seg-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 5px 11px;
+      font-size: 11px;
+      font-family: inherit;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.15s ease;
+    }
+    .office-seg-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
+    }
+    .office-toggle {
+      width: 44px;
+      height: 22px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #475569;
+      border-radius: 11px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .office-toggle.active {
+      background: #2563eb;
+      border-color: #60a5fa;
+    }
+    .office-toggle-handle {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #cbd5e1;
+      transition: transform 0.2s ease;
+    }
+    .office-toggle.active .office-toggle-handle {
+      transform: translateX(22px);
+      background: #ffffff;
     }
     .hint-text {
       margin-top: 14px;
@@ -774,32 +1026,115 @@
     <div id="heal-touch-btn" class="touch-action-btn" style="bottom: 190px; right: 178px; background: rgba(170, 80, 50, 0.4); border: 1.5px solid #ffaa77;">HEAL<br><span style="font-size:8px;">[H]</span></div>
   </div>
 
-  <!-- Start Menu พรางตัว -->
-  <div id="start-menu" class="dialog-layer" onpointerdown="doStartGame(event)" onclick="doStartGame(event)" ontouchend="doStartGame(event)">
-    <h1>OFFICE ESCAPE 3D</h1>
-    <p>
-      คุณทำงานล่วงเวลาจนดึก เพื่อนร่วมงานกลับบ้านกันหมดแล้ว<br>
-      ตึกเข้าสู่โหมดปิดไฟประหยัดพลังงาน หาทางออกจากตึกให้ได้
-    </p>
-    <div class="menu-btn-row">
-      <button id="start-btn" class="action-btn" onpointerdown="doStartGame(event)" onclick="doStartGame(event)" ontouchend="doStartGame(event)">START GAME</button>
-      <button id="howto-btn" class="action-btn secondary-btn" onpointerdown="openHowTo(event)" onclick="openHowTo(event)" ontouchend="openHowTo(event)">วิธีเล่น</button>
-      <button id="notes-gallery-btn" class="action-btn secondary-btn" onpointerdown="openNotesGallery(event)" onclick="openNotesGallery(event)" ontouchend="openNotesGallery(event)">📄 บันทึกที่เก็บได้</button>
+  <!-- Clean Office Overtime Start Menu -->
+  <div id="start-menu" class="dialog-layer">
+    <div class="office-menu-card">
+      <div class="office-badge">
+        <span class="office-badge-dot"></span>
+        <span>อาคารสำนักงาน ทาวเวอร์ A • เวลา 21:45 น.</span>
+      </div>
+
+      <h1 class="office-title-main">Office Escape</h1>
+      <div class="office-title-sub">LATE NIGHT SHIFT &bull; OVERTIME ESCAPE</div>
+
+      <div class="office-synopsis">
+        คุณเคลียร์งานล่วงเวลาจนดึก ทุกคนในแผนกกลับบ้านกันหมดแล้ว อาคารเริ่มตัดไฟตามระบบประหยัดพลังงาน สำรวจโต๊ะทำงาน รวบรวมคีย์การ์ด 3 ใบเพื่อเปิดประตูกลับบ้าน
+        <div class="office-objectives">
+          <span>💼 เคลียร์งานดึก</span>
+          <span>🔑 คีย์การ์ด 3 ใบ</span>
+          <span>🚪 บันไดหนีไฟ (EXIT)</span>
+        </div>
+      </div>
+
+      <div class="office-nav-group">
+        <button id="start-btn" class="office-btn primary-btn" onclick="doStartGame(event)" onmouseenter="if(window.playMenuHoverSound) window.playMenuHoverSound();">
+          ▶ เริ่มค้นหาทางออก (START)
+        </button>
+        <button id="howto-btn" class="office-btn" onclick="openHowTo(event)" onmouseenter="if(window.playMenuHoverSound) window.playMenuHoverSound();">
+          📋 วิธีเล่น & การควบคุม (HOW TO PLAY)
+        </button>
+        <button id="notes-gallery-btn" class="office-btn" onclick="openNotesGallery(event)" onmouseenter="if(window.playMenuHoverSound) window.playMenuHoverSound();">
+          📑 เอกสารในออฟฟิศ (OFFICE NOTES)
+        </button>
+        <button id="settings-btn" class="office-btn" onclick="openSettings(event)" onmouseenter="if(window.playMenuHoverSound) window.playMenuHoverSound();">
+          ⚙️ การแสดงผล & กราฟิก (SETTINGS)
+        </button>
+      </div>
+
+      <div class="office-footer-hint" id="menu-quality-status">กราฟิก: ความละเอียดสูง (คมชัด) &bull; กดปุ่มเพื่อเริ่มต้น</div>
     </div>
-    <div class="hint-text">[ แตะปุ่ม START GAME หรือแตะตรงไหนก็ได้บนจอเพื่อเริ่ม ]</div>
+  </div>
+
+  <!-- Settings Menu -->
+  <div id="settings-menu" class="dialog-layer" style="display: none;" onclick="if(event.target === this) closeSettings(event)">
+    <div class="office-settings-card" onclick="event.stopPropagation()">
+      <h2>
+        <span>DISPLAY & PERFORMANCE</span>
+        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">SETTINGS</span>
+      </h2>
+      <div class="office-settings-sub">ปรับแต่งความลื่นไหล ความละเอียดกราฟิก และแสงไฟในอาคาร</div>
+
+      <div class="office-opt-group">
+        <div class="office-opt-row">
+          <div class="office-opt-info">
+            <div class="office-opt-title">GRAPHICS PRESET</div>
+            <div class="office-opt-desc">ปรับความคมชัดของภาพและความละเอียดพื้นผิว</div>
+          </div>
+          <div class="office-seg-control">
+            <button class="office-seg-btn" id="preset-low" onclick="setGraphicsPreset('low')">LOW</button>
+            <button class="office-seg-btn" id="preset-med" onclick="setGraphicsPreset('medium')">MED</button>
+            <button class="office-seg-btn active" id="preset-ultra" onclick="setGraphicsPreset('ultra')">HIGH</button>
+          </div>
+        </div>
+
+        <div class="office-opt-row">
+          <div class="office-opt-info">
+            <div class="office-opt-title">ATMOSPHERE FILTER</div>
+            <div class="office-opt-desc">ฟิลเตอร์บรรยากาศยามค่ำคืนในอาคารสำนักงาน</div>
+          </div>
+          <div class="office-toggle active" id="toggle-film-grain" onclick="toggleFilmGrainSetting()">
+            <div class="office-toggle-handle"></div>
+          </div>
+        </div>
+
+        <div class="office-opt-row">
+          <div class="office-opt-info">
+            <div class="office-opt-title">OFFICE LIGHTING & GLOW</div>
+            <div class="office-opt-desc">แสงสะท้อนโคมไฟเพดานและบรรยากาศในโถงทางเดิน</div>
+          </div>
+          <div class="office-toggle active" id="toggle-fog-glow" onclick="toggleFogGlowSetting()">
+            <div class="office-toggle-handle"></div>
+          </div>
+        </div>
+
+        <div class="office-opt-row">
+          <div class="office-opt-info">
+            <div class="office-opt-title">DYNAMIC FIELD OF VIEW (FOV)</div>
+            <div class="office-opt-desc">มุมมองกล้องยืดหยุ่นตามความเร็วในการก้าวเดิน</div>
+          </div>
+          <div class="office-toggle active" id="toggle-dynamic-fov" onclick="toggleDynamicFovSetting()">
+            <div class="office-toggle-handle"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="action-btn" onclick="closeSettings(event)">บันทึก & ปิด (APPLY & CLOSE)</button>
+      </div>
+    </div>
   </div>
 
   <!-- Notes Gallery: สรุปโน้ต/เอกสารที่เก็บได้สะสม -->
-  <div id="notes-gallery-menu" class="dialog-layer" style="display: none;" onclick="closeNotesGallery(event)">
+  <div id="notes-gallery-menu" class="dialog-layer" style="display: none;" onclick="if(event.target === this) closeNotesGallery(event)">
     <h1>📄 บันทึกที่เก็บได้</h1>
     <div id="notes-gallery-count"></div>
     <div id="notes-gallery-list"></div>
-    <button id="notes-gallery-back-btn" class="action-btn" onpointerdown="closeNotesGallery(event)" onclick="closeNotesGallery(event)" ontouchend="closeNotesGallery(event)">ย้อนกลับ</button>
+    <button id="notes-gallery-back-btn" class="action-btn" onclick="closeNotesGallery(event)">ย้อนกลับ</button>
     <div class="hint-text">[ แตะที่ใดก็ได้เพื่อย้อนกลับ ]</div>
   </div>
 
   <!-- How To Play -->
-  <div id="howto-menu" class="dialog-layer" style="display: none;" onclick="closeHowTo(event)">
+  <div id="howto-menu" class="dialog-layer" style="display: none;" onclick="if(event.target === this) closeHowTo(event)">
     <h1>วิธีเล่น</h1>
     <p class="howto-text">
       <b>เป้าหมาย:</b> หาทาง <b>บันไดหนีไฟ (EXIT)</b> แล้วออกจากตึกให้ได้<br><br>
@@ -811,50 +1146,50 @@
       • <b>มือถือ:</b> จอยสติ๊กซ้ายเดิน | ปัดนิ้วฝั่งขวาหันมอง | ปุ่ม SPRINT วิ่ง | ปุ่ม CAMERA ถ่ายภาพสร้างแสงแฟลช | ปุ่ม DRINK ดื่มนมจากกระเป๋า<br>
       • <b>PC:</b> W, A, S, D เดิน | คลิกเมาส์เพื่อหันมุมมอง | Shift หรือ Space วิ่ง | กด F ถ่ายภาพสร้างแสงแฟลช | กด Q ดื่มนมจากกระเป๋า
     </p>
-    <button id="howto-back-btn" class="action-btn" onpointerdown="closeHowTo(event)" onclick="closeHowTo(event)" ontouchend="closeHowTo(event)">ย้อนกลับ</button>
+    <button id="howto-back-btn" class="action-btn" onclick="closeHowTo(event)">ย้อนกลับ</button>
     <div class="hint-text">[ แตะที่ใดก็ได้เพื่อย้อนกลับ ]</div>
   </div>
 
   <!-- Game Over Screen -->
-  <div id="over-menu" class="dialog-layer" style="display: none;" onpointerdown="doRestartGame(event)" onclick="doRestartGame(event)">
-    <h1 id="over-title" style="color: #ff3333; text-shadow: 0 0 16px #f00;">SIGNAL LOST</h1>
-    <p id="over-desc" style="color: #c9b097;">
+  <div id="over-menu" class="dialog-layer" style="display: none;" onclick="if(event.target === this) doRestartGame(event)">
+    <h1 id="over-title" style="color: #ff5555; text-shadow: 0 0 16px #f00;">SIGNAL LOST</h1>
+    <p id="over-desc" style="color: #cbd5e1;">
       ที่นี่... ไม่ใช่อาคารสำนักงานธรรมดาอีกต่อไป<br>
-      <b>คุณไม่มีวันหาทางออกเจอ</b>
+      <b>คุณยังหาทางออกไม่พบ</b>
     </p>
-    <p id="survival-time-over" style="color: #f0d9a0; font-size: 13px; letter-spacing: 1px; margin-top: 4px;"></p>
+    <p id="survival-time-over" style="color: #f1f5f9; font-size: 13px; letter-spacing: 1px; margin-top: 4px;"></p>
     <div class="menu-btn-row">
-      <button id="retry-btn" class="action-btn" onpointerdown="doRestartGame(event)" onclick="doRestartGame(event)" ontouchend="doRestartGame(event)">TRY AGAIN</button>
-      <button id="over-home-btn" class="action-btn secondary-btn" onpointerdown="doBackToHome(event)" onclick="doBackToHome(event)" ontouchend="doBackToHome(event)">กลับหน้าหลัก</button>
+      <button id="retry-btn" class="action-btn" onclick="doRestartGame(event)">TRY AGAIN</button>
+      <button id="over-home-btn" class="action-btn secondary-btn" onclick="doBackToHome(event)">กลับหน้าหลัก</button>
     </div>
     <div class="hint-text">[ แตะที่ใดก็ได้เพื่อลองใหม่อีกครั้ง ]</div>
   </div>
 
   <!-- Win Screen -->
-  <div id="win-menu" class="dialog-layer" style="display: none;" onpointerdown="doRestartGame(event)" onclick="doRestartGame(event)">
-    <h1 style="color: #6ed66e; text-shadow: 0 0 15px #0f0;">YOU ESCAPED</h1>
-    <p>คุณผลักประตูหนีไฟและหลุดพ้นจากฝันร้ายได้สำเร็จ!</p>
-    <p id="survival-time-win" style="color: #d9f0d9; font-size: 13px; letter-spacing: 1px; margin-top: 4px;"></p>
+  <div id="win-menu" class="dialog-layer" style="display: none;" onclick="if(event.target === this) doRestartGame(event)">
+    <h1 style="color: #4ade80; text-shadow: 0 0 15px rgba(74, 222, 128, 0.6);">YOU ESCAPED</h1>
+    <p>คุณผลักประตูหนีไฟและเดินทางกลับบ้านได้สำเร็จ!</p>
+    <p id="survival-time-win" style="color: #dcfce7; font-size: 13px; letter-spacing: 1px; margin-top: 4px;"></p>
     <div class="menu-btn-row">
-      <button id="replay-btn" class="action-btn" onpointerdown="doRestartGame(event)" onclick="doRestartGame(event)" ontouchend="doRestartGame(event)">PLAY AGAIN</button>
-      <button id="win-home-btn" class="action-btn secondary-btn" onpointerdown="doBackToHome(event)" onclick="doBackToHome(event)" ontouchend="doBackToHome(event)">กลับหน้าหลัก</button>
+      <button id="replay-btn" class="action-btn" onclick="doRestartGame(event)">PLAY AGAIN</button>
+      <button id="win-home-btn" class="action-btn secondary-btn" onclick="doBackToHome(event)">กลับหน้าหลัก</button>
     </div>
     <div class="hint-text">[ แตะที่ใดก็ได้เพื่อเริ่มใหม่ ]</div>
   </div>
 
-  <script src="js/state.js"></script>
-  <script src="js/mapgen.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/textures-env.js"></script>
-  <script src="js/monster-rigs.js"></script>
-  <script src="js/world-furniture.js"></script>
-  <script src="js/level-build.js"></script>
-  <script src="js/act-system.js"></script>
-  <script src="js/combat.js"></script>
-  <script src="js/hud-ambient.js"></script>
-  <script src="js/player-controls.js"></script>
-  <script src="js/render-loop.js"></script>
-  <script src="js/ui-menus.js"></script>
-  <script src="js/main-init.js"></script>
+  <script src="js/state.js?v=4"></script>
+  <script src="js/mapgen.js?v=4"></script>
+  <script src="js/audio.js?v=4"></script>
+  <script src="js/textures-env.js?v=4"></script>
+  <script src="js/monster-rigs.js?v=4"></script>
+  <script src="js/world-furniture.js?v=4"></script>
+  <script src="js/level-build.js?v=4"></script>
+  <script src="js/act-system.js?v=4"></script>
+  <script src="js/combat.js?v=4"></script>
+  <script src="js/hud-ambient.js?v=4"></script>
+  <script src="js/player-controls.js?v=4"></script>
+  <script src="js/render-loop.js?v=4"></script>
+  <script src="js/ui-menus.js?v=4"></script>
+  <script src="js/main-init.js?v=4"></script>
 </body>
 </html>
