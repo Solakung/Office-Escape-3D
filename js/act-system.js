@@ -155,10 +155,12 @@
   window.spawnFarewellNote = function() {
     if (farewellNoteTriggered || !scene || !GRID || GRID.length === 0) return; // เก็บไปแล้ว/ยังไม่พร้อม ไม่ spawn ซ้ำ
 
+    // getRandomFloorCellNear คืน null ได้ถ้าหาจุดที่ตรงเงื่อนไขระยะไม่เจอ (เช่นแมพเล็ก/ผิดรูป)
+    // fallback ไป getRandomFloorCell() ที่การันตีว่าได้จุดเสมอ กันจดหมายไม่ spawn เลยทั้งรอบเล่น
     const spot = window.getRandomFloorCellNear(
       DETECTIVE_ENTRY_POINT.x, DETECTIVE_ENTRY_POINT.z,
       FAREWELL_NOTE_MIN_DIST, FAREWELL_NOTE_MAX_DIST
-    );
+    ) || (window.getRandomFloorCell ? window.getRandomFloorCell() : null);
     if (!spot) return;
 
     // ภาพลักษณ์ต่างจาก loreNotes ทั่วไปโดยตั้งใจ — กระดาษสีอุ่น/เหลืองซีดที่ดูส่วนตัวกว่าเอกสารราชการ
