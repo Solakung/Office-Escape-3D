@@ -1,0 +1,16 @@
+{
+  "name": "office-escape-3d",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "node -e \"console.log('Build complete')\"",
+    "lint": "node -c server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "three": "0.128.0"
+  }
+}

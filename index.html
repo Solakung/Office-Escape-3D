@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Office Escape 3D</title>
+  <meta name="description" content="A 3D survival horror office escape game in retro Backrooms VHS style built with Three.js.">
+  <meta property="og:title" content="Office Escape 3D">
+  <meta property="og:description" content="A 3D survival horror office escape game in retro Backrooms VHS style built with Three.js.">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #11110a;
+      font-family: monospace;
+    }
+    #viewport {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      touch-action: none;
+    }
+    .vhs {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      background: radial-gradient(circle, rgba(0,0,0,0) 46%, rgba(18,20,8,0.42) 100%);
+      box-shadow: inset 0 0 55px rgba(0,0,0,0.5);
+    }
+    .vhs::after {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+      background-size: 100% 4px;
+      z-index: 6;
+      pointer-events: none;
+      opacity: 0.22;
+    }
+
+    .hud {
+      position: absolute;
+      top: 16px;
+      left: 18px;
+      color: #9cb873;
+      font-size: 13px;
+      letter-spacing: 1px;
+      z-index: 13;
+      pointer-events: none;
+      text-shadow: 0 0 4px #5a7b3c;
+    }
+    .hud .rec {
+      color: #ff3333;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+    .energy-container {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+    }
+    #meter-label {
+      font-weight: bold;
+      transition: color 0.4s ease;
+    }
+    .energy-bar-bg {
+      width: 110px;
+      height: 9px;
+      background: rgba(40, 45, 20, 0.6);
+      border: 1px solid #758348;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    #energy-bar-fill {
+      width: 100%;
+      height: 100%;
+      background: #7ca856;
+      transition: width 0.3s ease, background-color 0.3s ease;
+    }
+    #item-notification {
+      position: absolute;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 40, 20, 0.85);
+      border: 1px solid #8fad58;
+      color: #e3f5b8;
+      padding: 8px 18px;
+      font-size: 12px;
+      letter-spacing: 1px;
+      border-radius: 4px;
+      z-index: 10;
+      display: none;
+      pointer-events: none;
+      text-align: center;
+    }
+
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 3px;
+      height: 3px;
+      background: rgba(220, 220, 180, 0.45);
+      border-radius: 50%;
+      z-index: 7;
+      pointer-events: none;
+    }
+
+    .dialog-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(12, 14, 9, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #dfd89d;
+      z-index: 1000;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      touch-action: manipulation !important;
+      pointer-events: auto !important;
+    }
+    .dialog-layer h1 {
+      font-size: 26px;
+      letter-spacing: 3px;
+      margin-bottom: 12px;
+      color: #e5cb5b;
+      pointer-events: none;
+    }
+    .dialog-layer p {
+      font-size: 13px;
+      max-width: 460px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      color: #aaa580;
+      pointer-events: none;
+    }
+    .action-btn {
+      background: #2b2f1c;
+      color: #f0e6a8;
+      border: 2px solid #8c864d;
+      padding: 16px 38px;
+      font-size: 16px;
+      font-family: inherit;
+      letter-spacing: 2px;
+      font-weight: bold;
+      border-radius: 6px;
+      box-shadow: 0 0 14px rgba(140, 134, 77, 0.5);
+      touch-action: manipulation !important;
+      pointer-events: auto !important;
+    }
+    .action-btn:active {
+      background: #4e532b;
+      color: #ffffff;
+      transform: scale(0.97);
+    }
+    .action-btn.secondary-btn {
+      background: transparent;
+      color: #cfc98a;
+      border: 2px solid #6b6640;
+      box-shadow: none;
+    }
+    .action-btn.secondary-btn:active {
+      background: rgba(140, 134, 77, 0.25);
+      color: #ffffff;
+    }
+    .menu-btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .hint-text {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #857e4e;
+      letter-spacing: 1px;
+      pointer-events: none;
+    }
+    #howto-menu {
+      overflow-y: auto;
+      justify-content: flex-start;
+      padding-top: 48px;
+      padding-bottom: 48px;
+    }
+    #howto-menu .howto-text {
+      text-align: left;
+    }
+
+    #notes-gallery-menu {
+      overflow-y: auto;
+      justify-content: flex-start;
+      padding-top: 48px;
+      padding-bottom: 48px;
+    }
+    #notes-gallery-count {
+      font-size: 13px;
+      color: #e5cb5b;
+      letter-spacing: 1px;
+      margin-bottom: 18px;
+      pointer-events: none;
+    }
+    #notes-gallery-list {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+      pointer-events: none;
+    }
+    .note-gallery-entry {
+      text-align: left;
+      font-size: 12.5px;
+      line-height: 1.6;
+      padding: 12px 14px;
+      border-radius: 6px;
+      border: 1px solid #6b6640;
+    }
+    .note-gallery-entry.found {
+      background: rgba(140, 134, 77, 0.16);
+      color: #d9d2a0;
+    }
+    .note-gallery-entry.locked {
+      background: rgba(60, 58, 40, 0.3);
+      color: #6b6640;
+      font-style: italic;
+    }
+
+    #noise-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 20;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.08s ease;
+    }
+    /* จอเหลืองซีดๆ ป่วยๆ แบบ backrooms — ไล่เข้ามาจากขอบจอเรื่อยๆ ไม่ใช่แค่ตอนไฟดับ/ถูกไล่ล่า ให้รู้สึก "ผิดที่ผิดทาง" ตลอดเวลา */
+    #dread-vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 4;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle, rgba(80,70,10,0) 38%, rgba(120,105,20,0.35) 78%, rgba(40,35,5,0.65) 100%);
+      mix-blend-mode: multiply;
+      transition: opacity 0.4s ease;
+    }
+    /* แฟลชจอวาบสั้นๆ ตอนเกิด ambient dread event — เหมือนเห็นอะไรผ่านขอบตาแวบเดียว */
+    #subliminal-flash {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 21;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle, rgba(10,8,4,0.9) 0%, rgba(0,0,0,0.98) 100%);
+    }
+    /* แฟลชขาววาบตอนกดถ่ายรูป — จำลองแสงแฟลชกล้องจริงๆ แทนไฟฉายส่องต่อเนื่อง */
+    #camera-flash-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 22;
+      pointer-events: none;
+      opacity: 0;
+      background: #ffffff;
+      transition: opacity 0.18s ease-out;
+    }
+    /* แฟลชเขียวขุ่นวาบสั้นๆ ตอนโดนกรดจาก Acid Man สาดใส่ */
+    #acid-splash-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 23;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle, rgba(140,220,30,0.15) 0%, rgba(90,160,10,0.55) 60%, rgba(40,70,0,0.75) 100%);
+      mix-blend-mode: screen;
+    }
+    /* จอบิดวาบตอนโดน The Gapped คว้าลากผ่านรอยแยก — โทนม่วง-ดำ วนเป็นเกลียวเข้าศูนย์กลาง ต่างจากสีแดงจั๊มสแกร์ตัวอื่น เพื่อสื่อว่าไม่ใช่การถูกฆ่า */
+    #gap-warp-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 16;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle, rgba(20,10,35,0.4) 0%, rgba(60,20,90,0.55) 45%, rgba(5,2,10,0.95) 100%);
+      mix-blend-mode: normal;
+    }
+    #jumpscare-strobe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 15;
+      display: none;
+      pointer-events: none;
+      background: #4a0000;
+      opacity: 0.35;
+    }
+
+    /* Chromatic aberration: สีแดง/ฟ้าเยื้องออกจากกัน ยิ่งสติต่ำยิ่งแยกห่างและสั่นมากขึ้น */
+    #chroma-aberration {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 8;
+      pointer-events: none;
+      opacity: 0;
+      --chroma-shift: 2px;
+    }
+    #chroma-aberration::before, #chroma-aberration::after {
+      content: " ";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      mix-blend-mode: screen;
+    }
+    #chroma-aberration::before { background: rgba(255, 20, 20, 0.55); transform: translateX(var(--chroma-shift)); }
+    #chroma-aberration::after  { background: rgba(20, 220, 255, 0.55); transform: translateX(calc(var(--chroma-shift) * -1)); }
+
+    /* เงาร่างบางอย่างวาบที่ขอบจอ ไม่ใช่มอนสเตอร์จริง แค่ทำให้ผู้เล่นไม่แน่ใจว่าเห็นอะไรหรือเปล่า */
+    #peripheral-glitch {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 9;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #peripheral-glitch .figure {
+      position: absolute;
+      width: 64px;
+      height: 180px;
+      opacity: 0;
+      background: linear-gradient(to bottom, rgba(3,3,2,0.94) 0%, rgba(3,3,2,0.88) 55%, rgba(3,3,2,0) 100%);
+      border-radius: 45% 45% 30% 30% / 22% 22% 16% 16%;
+      filter: blur(1.5px);
+    }
+    #peripheral-glitch .figure::before {
+      content: " ";
+      position: absolute;
+      top: -24px; left: 50%;
+      transform: translateX(-50%);
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: rgba(3,3,2,0.94);
+      filter: blur(1px);
+    }
+
+    /* มองผ่านช่องล็อคเกอร์ตอนซ่อนตัวในตู้ — บังบนล่างเหลือช่องแคบตรงกลาง + ขอบตู้เข้ม */
+    #locker-slit {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 12;
+      display: none;
+      pointer-events: none;
+      background:
+        linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0) 6%, rgba(0,0,0,0) 94%, rgba(0,0,0,0.92) 100%),
+        linear-gradient(to bottom,
+          rgba(5,5,3,0.97) 0%,
+          rgba(5,5,3,0.97) 38%,
+          rgba(5,5,3,0) 44%,
+          rgba(5,5,3,0) 56%,
+          rgba(5,5,3,0.97) 62%,
+          rgba(5,5,3,0.97) 100%);
+      box-shadow: inset 0 0 90px rgba(0,0,0,0.9);
+    }
+    /* สั่นช่องมองล็อคเกอร์แรงๆ ตอนมีบางอย่างมาจ่อใกล้ตู้ที่กำลังซ่อนอยู่ — สัญญาณเตือนว่าไม่ปลอดภัย 100% แล้ว */
+    #locker-slit.locker-shake {
+      animation: locker-shake-kf 0.09s linear infinite;
+    }
+    @keyframes locker-shake-kf {
+      0%   { transform: translate(0, 0); }
+      25%  { transform: translate(-3px, 2px); }
+      50%  { transform: translate(2px, -3px); }
+      75%  { transform: translate(-2px, -2px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    /* Touch Controls */
+    #joy-base {
+      position: absolute;
+      bottom: 32px;
+      left: 32px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: rgba(240, 240, 180, 0.08);
+      border: 1.5px solid rgba(220, 220, 160, 0.3);
+      z-index: 10;
+      display: none;
+      touch-action: none;
+    }
+    #joy-handle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(220, 200, 120, 0.4);
+      border: 1.5px solid rgba(255, 255, 200, 0.7);
+      pointer-events: none;
+    }
+    #touch-look {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 55%;
+      height: 100%;
+      z-index: 9;
+      display: none;
+      touch-action: none;
+    }
+    #sprint-btn {
+      position: absolute;
+      bottom: 38px;
+      right: 32px;
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: rgba(180, 60, 40, 0.28);
+      border: 1.5px solid rgba(255, 160, 120, 0.55);
+      color: #ffe3c9;
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      z-index: 11;
+      touch-action: manipulation;
+      user-select: none;
+      transition: opacity 0.15s ease, filter 0.15s ease, transform 0.1s ease;
+    }
+    #sprint-btn:active {
+      transform: scale(0.94);
+      background: rgba(210, 80, 50, 0.4);
+    }
+    #sprint-btn.cooldown {
+      filter: grayscale(0.85);
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    #flash-btn {
+      position: absolute;
+      bottom: 38px;
+      right: 122px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(200, 180, 100, 0.22);
+      border: 1.5px solid rgba(230, 220, 160, 0.5);
+      color: #fff3cf;
+      font-family: monospace;
+      font-size: 9px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      z-index: 11;
+      touch-action: manipulation;
+      user-select: none;
+      transition: opacity 0.15s ease, filter 0.15s ease;
+    }
+    #flash-btn.off {
+      filter: grayscale(0.9);
+      opacity: 0.5;
+    }
+
+    #hide-btn {
+      position: absolute;
+      bottom: 118px;
+      right: 32px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(70, 90, 60, 0.28);
+      border: 1.5px solid rgba(150, 220, 150, 0.5);
+      color: #daffda;
+      font-family: monospace;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      z-index: 13;
+      touch-action: manipulation;
+      user-select: none;
+      transition: opacity 0.15s ease, filter 0.15s ease, transform 0.1s ease, background 0.15s ease;
+    }
+    #hide-btn.active {
+      background: rgba(80, 190, 100, 0.5);
+      transform: scale(0.94);
+    }
+    #hide-btn.disabled {
+      filter: grayscale(0.85);
+      opacity: 0.35;
+    }
+
+    #drink-btn {
+      position: absolute;
+      bottom: 118px;
+      right: 122px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(90, 110, 190, 0.28);
+      border: 1.5px solid rgba(170, 190, 255, 0.55);
+      color: #dbe4ff;
+      font-family: monospace;
+      font-size: 9px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      z-index: 11;
+      touch-action: manipulation;
+      user-select: none;
+      transition: opacity 0.15s ease, filter 0.15s ease, transform 0.1s ease;
+    }
+    #drink-btn:active {
+      transform: scale(0.94);
+      background: rgba(120, 140, 220, 0.4);
+    }
+    #drink-btn.disabled {
+      filter: grayscale(0.85);
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .touch-action-btn {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      color: #ffffff;
+      font-family: monospace;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      z-index: 14;
+      touch-action: manipulation;
+      user-select: none;
+      transition: transform 0.1s ease, opacity 0.15s ease;
+    }
+    .touch-action-btn:active {
+      transform: scale(0.92);
+    }
+
+    #hide-prompt {
+      position: absolute;
+      bottom: 110px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #cdf7cd;
+      font-family: monospace;
+      font-size: 13px;
+      letter-spacing: 1px;
+      z-index: 13;
+      pointer-events: none;
+      text-shadow: 0 0 4px #060;
+      display: none;
+    }
+
+    #flashlight-indicator {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #ff8888;
+      font-size: 11px;
+      letter-spacing: 2px;
+      z-index: 13;
+      pointer-events: none;
+      text-shadow: 0 0 4px #900;
+      display: none;
+    }
+
+    #note-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 12;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 150px;
+      pointer-events: none;
+    }
+    .note-card {
+      background: rgba(28, 26, 14, 0.92);
+      border: 1px solid #a89454;
+      color: #f0e6c8;
+      max-width: 82%;
+      padding: 14px 18px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      line-height: 1.6;
+      text-align: left;
+      box-shadow: 0 0 18px rgba(0,0,0,0.6);
+    }
+    .note-title {
+      font-size: 11px;
+      color: #e5cb5b;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .note-count {
+      margin-top: 8px;
+      font-size: 10px;
+      color: #8fad58;
+      letter-spacing: 1px;
+    }
+  </style>
+
+  <script src="js/ui-menus.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.write('<script src="/vendor/three.min.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+  <div id="viewport"></div>
+  <div class="vhs"></div>
+  <div id="dread-vignette"></div>
+  <canvas id="noise-canvas"></canvas>
+  <div id="subliminal-flash"></div>
+  <div id="camera-flash-overlay"></div>
+  <div id="acid-splash-overlay"></div>
+  <div id="chroma-aberration"></div>
+  <div id="peripheral-glitch"><div class="figure"></div></div>
+  <div id="gap-warp-overlay"></div>
+  <div id="jumpscare-strobe"></div>
+  <div id="locker-slit"></div>
+  <div id="item-notification">+45% ENERGY RESTORED</div>
+
+  <div class="hud">
+    <div><span class="rec">● CAM-04</span> [LIVE] <span id="cctv-clock">22:48:12</span></div>
+    <div id="hud-subtitle" style="font-size: 11px; margin-top: 3px; opacity: 0.7;">BLDG-A: 4F // OFFICE FLOOR</div>
+    <div id="objective-text" style="font-size: 11px; margin-top: 3px; color: #8fc4ff;">บัตรผ่าน: 0/3</div>
+    
+    <!-- Act 1 Energy HUD -->
+    <div id="act1-hud-group">
+      <div class="energy-container">
+        <span id="meter-label">ENERGY:</span>
+        <div class="energy-bar-bg">
+          <div id="energy-bar-fill"></div>
+        </div>
+        <span id="energy-text">100%</span>
+      </div>
+      <div id="bottle-container" style="font-size: 11px; margin-top: 3px; color: #d9c98a;">🥛 นมอัลมอนด์: <span id="bottle-count">0/5</span></div>
+    </div>
+
+    <!-- Act 2 Detective HUD -->
+    <div id="act2-hud-elements" style="display: none; margin-top: 6px;">
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+        <span style="font-weight: bold; color: #ff6666;">HP:</span>
+        <div class="energy-bar-bg" style="border-color: #aa4444;">
+          <div id="hp-bar-fill" style="width: 100%; height: 100%; background: #d94444; transition: width 0.3s ease;"></div>
+        </div>
+        <span id="hp-text" style="color: #ff9999;">100</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; margin-top: 4px;">
+        <span style="font-weight: bold; color: #5bc0be;">SANITY:</span>
+        <div class="energy-bar-bg" style="border-color: #3a8886;">
+          <div id="sanity-bar-fill" style="width: 100%; height: 100%; background: #5bc0be; transition: width 0.3s ease;"></div>
+        </div>
+        <span id="sanity-text" style="color: #8ce8e6;">100%</span>
+      </div>
+      <div id="weapon-display" style="font-size: 11px; margin-top: 5px; color: #f2e394;">
+        อาวุธ: <b id="weapon-name">ปืนพก (6/6)</b> <span style="font-size: 9px; opacity: 0.7;">[คลิกซ้าย/R โจมตี | X สลับ]</span>
+      </div>
+      <div id="anchor-status" style="font-size: 10px; margin-top: 3px; color: #7cf0bd;">
+        สมอยึดโยง: <b>พร้อมใช้ [C]</b>
+      </div>
+      <div id="firstaid-status" style="font-size: 10px; margin-top: 2px; color: #f0a07c;">
+        ชุดปฐมพยาบาล: <span id="firstaid-count">1</span> กล่อง <b>[H]</b>
+      </div>
+    </div>
+  </div>
+  <div id="crosshair"></div>
+  <div id="flashlight-indicator" style="display:none;">CAMERA READY</div>
+
+  <div id="note-overlay">
+    <div class="note-card">
+      <div class="note-title">📄 เอกสารที่พบ</div>
+      <div class="note-body"></div>
+      <div class="note-count"></div>
+    </div>
+  </div>
+
+  <div id="joy-base"><div id="joy-handle"></div></div>
+  <div id="touch-look"></div>
+  <div id="sprint-btn">SPRINT</div>
+  <div id="flash-btn">📷<br>SHOT</div>
+  <div id="hide-btn">HIDE</div>
+  <div id="drink-btn">🥛<br>DRINK</div>
+  <div id="hide-prompt">[ กด E เพื่อซ่อนตัว ]</div>
+
+  <!-- Touch Controls สำหรับ Act 2 (นักสืบ) -->
+  <div id="act2-touch-controls" style="display: none;">
+    <div id="attack-touch-btn" class="touch-action-btn" style="bottom: 190px; right: 32px; background: rgba(180, 50, 50, 0.4); border: 1.5px solid #ff7777;">ATTACK<br><span style="font-size:8px;">[R]</span></div>
+    <div id="weapon-touch-btn" class="touch-action-btn" style="bottom: 190px; right: 105px; background: rgba(160, 140, 50, 0.4); border: 1.5px solid #eedd66;">WEAPON<br><span style="font-size:8px;">[X]</span></div>
+    <div id="anchor-touch-btn" class="touch-action-btn" style="bottom: 118px; right: 192px; background: rgba(50, 160, 140, 0.4); border: 1.5px solid #66eebb;">ANCHOR<br><span style="font-size:8px;">[C]</span></div>
+    <div id="heal-touch-btn" class="touch-action-btn" style="bottom: 190px; right: 178px; background: rgba(170, 80, 50, 0.4); border: 1.5px solid #ffaa77;">HEAL<br><span style="font-size:8px;">[H]</span></div>
+  </div>
+
+  <!-- Start Menu พรางตัว -->
+  <div id="start-menu" class="dialog-layer" onpointerdown="doStartGame(event)" onclick="doStartGame(event)" ontouchend="doStartGame(event)">
+    <h1>OFFICE ESCAPE 3D</h1>
+    <p>
+      คุณทำงานล่วงเวลาจนดึก เพื่อนร่วมงานกลับบ้านกันหมดแล้ว<br>
+      ตึกเข้าสู่โหมดปิดไฟประหยัดพลังงาน หาทางออกจากตึกให้ได้
+    </p>
+    <div class="menu-btn-row">
+      <button id="start-btn" class="action-btn" onpointerdown="doStartGame(event)" onclick="doStartGame(event)" ontouchend="doStartGame(event)">START GAME</button>
+      <button id="howto-btn" class="action-btn secondary-btn" onpointerdown="openHowTo(event)" onclick="openHowTo(event)" ontouchend="openHowTo(event)">วิธีเล่น</button>
+      <button id="notes-gallery-btn" class="action-btn secondary-btn" onpointerdown="openNotesGallery(event)" onclick="openNotesGallery(event)" ontouchend="openNotesGallery(event)">📄 บันทึกที่เก็บได้</button>
+    </div>
+    <div class="hint-text">[ แตะปุ่ม START GAME หรือแตะตรงไหนก็ได้บนจอเพื่อเริ่ม ]</div>
+  </div>
+
+  <!-- Notes Gallery: สรุปโน้ต/เอกสารที่เก็บได้สะสม -->
+  <div id="notes-gallery-menu" class="dialog-layer" style="display: none;" onclick="closeNotesGallery(event)">
+    <h1>📄 บันทึกที่เก็บได้</h1>
+    <div id="notes-gallery-count"></div>
+    <div id="notes-gallery-list"></div>
+    <button id="notes-gallery-back-btn" class="action-btn" onpointerdown="closeNotesGallery(event)" onclick="closeNotesGallery(event)" ontouchend="closeNotesGallery(event)">ย้อนกลับ</button>
+    <div class="hint-text">[ แตะที่ใดก็ได้เพื่อย้อนกลับ ]</div>
+  </div>
+
+  <!-- How To Play -->
+  <div id="howto-menu" class="dialog-layer" style="display: none;" onclick="closeHowTo(event)">
+    <h1>วิธีเล่น</h1>
+    <p class="howto-text">
+      <b>เป้าหมาย:</b> หาทาง <b>บันไดหนีไฟ (EXIT)</b> แล้วออกจากตึกให้ได้<br><br>
+      • ประตู EXIT ถูกล็อกไว้ ต้องเก็บ <b>บัตรผ่าน (Keycard) ให้ครบ 3 ใบ</b> ก่อนถึงจะออกได้<br>
+      • เก็บ <b>นมอัลมอนด์</b> ที่เจอตามทางใส่กระเป๋าไว้ก่อนได้สูงสุด 5 ขวด แล้วค่อยกด <b>Q</b> (หรือปุ่ม DRINK) ดื่มตอนที่ต้องการเติม <b>พลังงาน/สติ</b> จริงๆ<br>
+      • ระหว่างทางมีเอกสาร/โน้ตของเพื่อนร่วมงานวางทิ้งไว้ เก็บอ่านเล่นได้<br>
+      • ใช้ <b>กล้อง</b> ถ่ายรูปเพื่อสร้างแสงแฟลชวาบช่วยให้เห็นทางชัดขึ้นชั่วครู่<br><br>
+      <b>การควบคุม:</b><br>
+      • <b>มือถือ:</b> จอยสติ๊กซ้ายเดิน | ปัดนิ้วฝั่งขวาหันมอง | ปุ่ม SPRINT วิ่ง | ปุ่ม CAMERA ถ่ายภาพสร้างแสงแฟลช | ปุ่ม DRINK ดื่มนมจากกระเป๋า<br>
+      • <b>PC:</b> W, A, S, D เดิน | คลิกเมาส์เพื่อหันมุมมอง | Shift หรือ Space วิ่ง | กด F ถ่ายภาพสร้างแสงแฟลช | กด Q ดื่มนมจากกระเป๋า
+    </p>
+    <button id="howto-back-btn" class="action-btn" onpointerdown="closeHowTo(event)" onclick="closeHowTo(event)" ontouchend="closeHowTo(event)">ย้อนกลับ</button>
+    <div class="hint-text">[ แตะที่ใดก็ได้เพื่อย้อนกลับ ]</div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="over-menu" class="dialog-layer" style="display: none;" onpointerdown="doRestartGame(event)" onclick="doRestartGame(event)">
+    <h1 id="over-title" style="color: #ff3333; text-shadow: 0 0 16px #f00;">SIGNAL LOST</h1>
+    <p id="over-desc" style="color: #c9b097;">
+      ที่นี่... ไม่ใช่อาคารสำนักงานธรรมดาอีกต่อไป<br>
+      <b>คุณไม่มีวันหาทางออกเจอ</b>
+    </p>
+    <p id="survival-time-over" style="color: #f0d9a0; font-size: 13px; letter-spacing: 1px; margin-top: 4px;"></p>
+    <div class="menu-btn-row">
+      <button id="retry-btn" class="action-btn" onpointerdown="doRestartGame(event)" onclick="doRestartGame(event)" ontouchend="doRestartGame(event)">TRY AGAIN</button>
+      <button id="over-home-btn" class="action-btn secondary-btn" onpointerdown="doBackToHome(event)" onclick="doBackToHome(event)" ontouchend="doBackToHome(event)">กลับหน้าหลัก</button>
+    </div>
+    <div class="hint-text">[ แตะที่ใดก็ได้เพื่อลองใหม่อีกครั้ง ]</div>
+  </div>
+
+  <!-- Win Screen -->
+  <div id="win-menu" class="dialog-layer" style="display: none;" onpointerdown="doRestartGame(event)" onclick="doRestartGame(event)">
+    <h1 style="color: #6ed66e; text-shadow: 0 0 15px #0f0;">YOU ESCAPED</h1>
+    <p>คุณผลักประตูหนีไฟและหลุดพ้นจากฝันร้ายได้สำเร็จ!</p>
+    <p id="survival-time-win" style="color: #d9f0d9; font-size: 13px; letter-spacing: 1px; margin-top: 4px;"></p>
+    <div class="menu-btn-row">
+      <button id="replay-btn" class="action-btn" onpointerdown="doRestartGame(event)" onclick="doRestartGame(event)" ontouchend="doRestartGame(event)">PLAY AGAIN</button>
+      <button id="win-home-btn" class="action-btn secondary-btn" onpointerdown="doBackToHome(event)" onclick="doBackToHome(event)" ontouchend="doBackToHome(event)">กลับหน้าหลัก</button>
+    </div>
+    <div class="hint-text">[ แตะที่ใดก็ได้เพื่อเริ่มใหม่ ]</div>
+  </div>
+
+  <script src="js/state.js"></script>
+  <script src="js/mapgen.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/textures-env.js"></script>
+  <script src="js/monster-rigs.js"></script>
+  <script src="js/world-furniture.js"></script>
+  <script src="js/level-build.js"></script>
+  <script src="js/act-system.js"></script>
+  <script src="js/combat.js"></script>
+  <script src="js/hud-ambient.js"></script>
+  <script src="js/player-controls.js"></script>
+  <script src="js/render-loop.js"></script>
+  <script src="js/ui-menus.js"></script>
+  <script src="js/main-init.js"></script>
+</body>
+</html>

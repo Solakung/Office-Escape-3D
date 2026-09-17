@@ -1,0 +1,6 @@
+{
+  "name": "Office Escape 3D",
+  "description": "A 3D survival horror office escape game in retro Backrooms VHS style built with Three.js.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
