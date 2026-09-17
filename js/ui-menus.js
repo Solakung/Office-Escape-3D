@@ -1,3 +1,4 @@
+(function() {
     window.gameEngineStarted = false;
     window.gameStartTime = 0;
     window.formatSurvivalTime = function(ms) {
@@ -241,3 +242,4 @@
       const el = document.getElementById('toggle-dynamic-fov');
       if (el) el.classList.toggle('active', window.graphicsConfig.dynamicFov);
     };
+})();
