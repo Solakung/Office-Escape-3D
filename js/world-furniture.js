@@ -56,9 +56,11 @@
       officeCeilingBump = genAuthenticCeilingBump();
       backroomsCeilingTex = genSickCeilingTex();
       backroomsCeilingBump = genSickCeilingBump();
-      wallMat = new THREE.MeshLambertMaterial({ map: officeWallTex, bumpMap: officeWallBump, bumpScale: 0.045 });
-      floorMat = new THREE.MeshLambertMaterial({ map: officeFloorTex, bumpMap: officeFloorBump, bumpScale: 0.035 });
-      ceilingMat = new THREE.MeshLambertMaterial({ map: officeCeilingTex, bumpMap: officeCeilingBump, bumpScale: 0.035 });
+      // ใช้ MeshPhongMaterial (shininess: 0 กันแสงสะท้อนวาว) แทน MeshLambertMaterial
+      // เพราะ MeshLambertMaterial ไม่รองรับ bumpMap เลย (สามเหลี่ยม/รอยตะเข็บที่ generate ไว้จะถูกเมินไปเงียบๆ)
+      wallMat = new THREE.MeshPhongMaterial({ map: officeWallTex, bumpMap: officeWallBump, bumpScale: 0.045, shininess: 0 });
+      floorMat = new THREE.MeshPhongMaterial({ map: officeFloorTex, bumpMap: officeFloorBump, bumpScale: 0.035, shininess: 0 });
+      ceilingMat = new THREE.MeshPhongMaterial({ map: officeCeilingTex, bumpMap: officeCeilingBump, bumpScale: 0.035, shininess: 0 });
       boxGeo = new THREE.BoxGeometry(CELL, HEIGHT, CELL);
 
       // Apply initial high-definition pixel ratio for crisp rendering

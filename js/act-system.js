@@ -165,6 +165,7 @@
       { type: 'fire_extinguisher', name: 'ถังดับเพลิง', count: 4, color: 0xcc2222 },
       { type: 'lan_cable', name: 'สายแลนพันแส้', count: 5, color: 0x334466 },
       { type: 'stapler', name: 'เครื่องเย็บกระดาษอุตสาหกรรม', count: 4, color: 0x555555 },
+      { type: 'office_chair', name: 'เก้าอี้มีล้อ', count: 5, color: 0x33363c },
       { type: 'first_aid', name: 'ชุดปฐมพยาบาล', count: 4, color: 0xffffff }
     ];
 
@@ -196,6 +197,23 @@
             new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.4 })
           );
           mesh.position.set(spot.x, 0.15, spot.z);
+        } else if (pt.type === 'office_chair') {
+          mesh = new THREE.Group();
+          const chairMat = new THREE.MeshStandardMaterial({ color: pt.color, roughness: 0.6 });
+          const metalMat = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.4, metalness: 0.6 });
+          const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.5), chairMat);
+          seat.position.y = 0.46;
+          mesh.add(seat);
+          const back = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.55, 0.08), chairMat);
+          back.position.set(0, 0.78, -0.21);
+          mesh.add(back);
+          const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.42, 8), metalMat);
+          pole.position.y = 0.22;
+          mesh.add(pole);
+          const base = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.03, 10), metalMat);
+          base.position.y = 0.02;
+          mesh.add(base);
+          mesh.position.set(spot.x, 0, spot.z);
         } else {
           mesh = new THREE.Mesh(
             new THREE.BoxGeometry(0.25, 0.15, 0.25),
@@ -347,7 +365,7 @@
   };
 
   // แสดงฉากจบ
-  window.triggerEndingSequence = function(endingType) {
+  window.triggerEndingSequence = function(endingType, cause) {
     window.gameEngineStarted = false;
     if (document.exitPointerLock) document.exitPointerLock();
 
@@ -402,10 +420,17 @@
       titleEl.style.color = '#bb66dd';
       titleEl.style.textShadow = '0 0 18px #9922cc';
       titleEl.innerText = "LOST IDENTITY // กลายเป็นหนึ่งในนั้น";
-      badgeEl.innerText = "Sanity หมดลง: โลกจริงลืมคุณไปอย่างสมบูรณ์";
-      descEl.innerHTML = `สติของคุณลดลงจนแตะศูนย์... คุณจำไม่ได้แล้วว่าตัวเองคือใคร มาที่นี่ทำไม หรือแม้แต่ชื่อของตัวเอง<br><br>
-        ร่างกายของคุณค่อยๆ บิดเบี้ยว กลืนหายไปกับผนังสีเหลืองและสายเคเบิล 
-        คุณกลายเป็น Entity ตัวใหม่ที่คอยเดินวนเวียนในเงามืดของ Level 0 ตลอดกาล`;
+      if (cause === 'wounds') {
+        badgeEl.innerText = "ร่างกายพ่ายแพ้: โลกจริงลืมคุณไปอย่างสมบูรณ์";
+        descEl.innerHTML = `บาดแผลที่สะสมมาทำให้คุณล้มลงในความมืด... ไม่มีใครมาช่วยคุณได้ที่นี่ ไม่มีทางออกจากการต่อสู้ มีแต่การเลื่อนปัญหาออกไป<br><br>
+          ร่างกายของคุณค่อยๆ บิดเบี้ยว กลืนหายไปกับผนังสีเหลืองและสายเคเบิล 
+          คุณกลายเป็น Entity ตัวใหม่ที่คอยเดินวนเวียนในเงามืดของ Level 0 ตลอดกาล`;
+      } else {
+        badgeEl.innerText = "Sanity หมดลง: โลกจริงลืมคุณไปอย่างสมบูรณ์";
+        descEl.innerHTML = `สติของคุณลดลงจนแตะศูนย์... คุณจำไม่ได้แล้วว่าตัวเองคือใคร มาที่นี่ทำไม หรือแม้แต่ชื่อของตัวเอง<br><br>
+          ร่างกายของคุณค่อยๆ บิดเบี้ยว กลืนหายไปกับผนังสีเหลืองและสายเคเบิล 
+          คุณกลายเป็น Entity ตัวใหม่ที่คอยเดินวนเวียนในเงามืดของ Level 0 ตลอดกาล`;
+      }
     }
 
     endScreen.style.display = 'flex';

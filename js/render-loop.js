@@ -391,12 +391,11 @@
               renderer.render(scene, camera);
               return;
             } else {
-              window.gameEngineStarted = false;
-              if (document.exitPointerLock) document.exitPointerLock();
-              document.getElementById('over-title').innerText = "SIGNAL LOST // DETECTIVE DOWN";
-              document.getElementById('over-desc').innerHTML = "คุณถูกทำร้ายจนหมดสติในความมืดมิด...<br><b>การสืบสวนคดี #94-B สิ้นสุดลง</b>";
-              document.getElementById('survival-time-over').innerText = `เวลาที่รอดมาได้: ${window.formatSurvivalTime(now - window.gameStartTime)}`;
-              document.getElementById('over-menu').style.display = 'flex';
+              // ตายจาก HP หมดไม่ใช่ "จบเกม" แบบทั่วไป — ตามธีมของเรื่อง ไม่มีทางออกจริงที่นี่
+              // นอกจากทางที่กำหนดไว้ในหัวข้อ 7 จึงพาไปที่ฉากจบ "กลายเป็นหนึ่งในนั้น" เหมือนกับตอน Sanity หมด
+              if (window.triggerEndingSequence) {
+                window.triggerEndingSequence('ENDING_BECOME_ENTITY', 'wounds');
+              }
             }
           }
 
@@ -682,9 +681,9 @@
           if (now > blackoutEndTime) {
             isBlackout = false;
             nextBlackoutTime = now + 28000 + Math.random() * 20000;
-            ambientLight.intensity = 0.5; // เดิม 0.82 สว่างเกินไปสำหรับบรรยากาศ backrooms ทั่วไป ลดลงให้มืดขึ้น พึ่งแสงแฟลชกล้องมากขึ้น
+            ambientLight.intensity = 0.82; // คืนค่าความสว่างปกติของ backrooms (แก้บั๊กกำแพงมืดด่าง)
             if (humGain && audioCtx) humGain.gain.setValueAtTime(0.18, audioCtx.currentTime);
-            for (let i = 0; i < ceilingLights.length; i++) ceilingLights[i].intensity = 0.6; // เดิม 0.85
+            for (let i = 0; i < ceilingLights.length; i++) ceilingLights[i].intensity = 0.85; // คืนค่าความสว่างปกติของโคมไฟเพดาน
             camera.fov = 82;
             camera.updateProjectionMatrix();
 
