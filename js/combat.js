@@ -127,6 +127,29 @@
 
   window.ENTITY_CONFIG = ENTITY_CONFIG;
 
+  // แก้บั๊ก 3 (2.7): กลไก "จัดการรอยแยกของ The Gapped ถูกจังหวะ" ที่ GDD ต้องการ ยังไม่เคยถูก implement เลย
+  // ผู้เล่นต้องกดโจมตี (KeyR / คลิกซ้าย) ระหว่างถูกลาก (gappedGrabActive) ให้ตรงช่วงจังหวะที่กำหนด
+  // ถ้าถูกจังหวะ -> gappedSeamHeldOpen = true ค้างไว้ชั่วคราว ให้พอมีเวลาวิ่งไปถึงประตู EXIT เพื่อฉากจบจริง
+  const GAPPED_SEAM_WINDOW_START_MS = 250;
+  const GAPPED_SEAM_WINDOW_END_MS = 650;
+  const GAPPED_SEAM_OPEN_MS_NORMAL = 45000;   // มีเวลาเดินไปถึง EXIT พอสมควรตอนสภาพยังไม่ลึกมาก
+  const GAPPED_SEAM_OPEN_MS_DEEP = 1800;      // Deep State (2.3): ความเป็นจริงเริ่มยุบตัว รอยแยกจะปิดเร็วกว่าเดิมมาก ยากขึ้นตามสเปก
+
+  function handleGappedSeamAttempt() {
+    const elapsed = performance.now() - gappedGrabStartTime;
+    if (elapsed >= GAPPED_SEAM_WINDOW_START_MS && elapsed <= GAPPED_SEAM_WINDOW_END_MS) {
+      const gappedCfg = window.getEffectiveEntityConfig ? window.getEffectiveEntityConfig('gapped') : null;
+      const openMs = (deepStateActive && gappedCfg && gappedCfg.seamOpenWindowMs) ? gappedCfg.seamOpenWindowMs : GAPPED_SEAM_OPEN_MS_NORMAL;
+      gappedSeamHeldOpen = true;
+      gappedSeamOpenUntil = performance.now() + openMs;
+      if (window.playAnchorSound) window.playAnchorSound();
+      showItemNotification(`<span style="color:#78f0d8;">🌀 คุณดึงรั้งรอยแยกไว้ได้ถูกจังหวะ! รีบไปที่ EXIT ก่อนมันจะปิดอีกครั้ง</span>`);
+    } else {
+      showItemNotification(`<span style="color:#d95b5b;">พลาดจังหวะ! รอยแยกลากคุณไปแล้ว...</span>`);
+    }
+  }
+  window.handleGappedSeamAttempt = handleGappedSeamAttempt;
+
   window.getEffectiveEntityConfig = function(type) {
     const base = ENTITY_CONFIG[type];
     if (!base) return null;
@@ -190,35 +213,19 @@
     cameraTurnSpeedMult = 0.6;
   }
 
-  // จัดการการพังของอาวุธ
+  // จัดการการพังของอาวุธ (ระเบิด/แตก) — ปืนพกและถังดับเพลิงไม่ผ่านจุดนี้แล้ว
+  // เพราะกระสุน/แรงดันถูกหักไปแล้วตอน "ยิง/พ่น" จริงใน resolveAttack() (แก้บั๊ก 5)
   function maybeBreakWeapon(weapon) {
-    if (!weapon || weapon.type === 'unarmed') return;
-    
-    // ถังดับเพลิง: ลดสารดับเพลิง
-    if (weapon.type === 'fire_extinguisher') {
-      weapon.pressure = Math.max(0, (weapon.pressure || 100) - 25);
-      if (weapon.pressure <= 0) {
-        showItemNotification("ถังดับเพลิง: สารเคมีหมดเกลี้ยง!");
-        removeWeaponFromInventory(weapon);
-      }
-      return;
-    }
-
-    // ปืนพก: ลดกระสุน
-    if (weapon.type === 'revolver') {
-      revolverAmmo = Math.max(0, revolverAmmo - 1);
-      if (revolverAmmo <= 0) {
-        showItemNotification("ปืนพก: กระสุนหมด! ไม่มีกระสุนสำรอง");
-        removeWeaponFromInventory(weapon);
-      }
-      return;
-    }
+    if (!weapon || weapon.type === 'unarmed' || weapon.type === 'revolver' || weapon.type === 'fire_extinguisher') return;
 
     if (Math.random() < (weapon.breakChance || 0)) {
       if (weapon.type === 'fluorescent_tube') {
         // หลอดไฟแตก: วาบแสงจ้า สตัน Smiler ทันที
         if (window.playGlassShatterSound) window.playGlassShatterSound();
-        smilerStunUntil = performance.now() + 3500;
+        // Deep State (2.3): ยิ่งลึกยิ่งยาก — หน้าต่างเวลาสตันของ Smiler สั้นลงเหลือแค่ stunWindowMs
+        const smilerCfg = window.getEffectiveEntityConfig ? window.getEffectiveEntityConfig('smiler') : null;
+        const stunMs = (deepStateActive && smilerCfg && smilerCfg.stunWindowMs) ? smilerCfg.stunWindowMs : 3500;
+        smilerStunUntil = performance.now() + stunMs;
         showItemNotification("หลอดไฟแตกกระจาย! แสงวาบสะกดเงาสำเร็จ");
         const flashOverlay = document.getElementById('camera-flash-overlay');
         if (flashOverlay) {
@@ -316,17 +323,31 @@
   // คำนวณผลการโจมตีเมื่อหมดช่วง Windup
   function resolveAttack() {
     if (!currentWeapon) currentWeapon = WEAPON_CONFIG.unarmed;
+    // จับอ้างอิงไว้ก่อนเริ่ม: ถ้ากระสุน/สารหมดพอดีนัดนี้ removeWeaponFromInventory() จะสลับ currentWeapon
+    // (global) ไปเป็นอาวุธอื่นทันที แต่การคำนวณที่เหลือของการโจมตีนัดนี้ต้องยังอ้างอิงอาวุธเดิมที่ใช้ยิงอยู่
+    const weapon = currentWeapon;
 
     // ถ้าเป็นปืนพก ตรวจสอบกระสุน
-    if (currentWeapon.type === 'revolver') {
+    if (weapon.type === 'revolver') {
       if (revolverAmmo <= 0) {
         if (window.playGunDryClick) window.playGunDryClick();
         showItemNotification("กระสุนหมด!");
-        enterRecovery(currentWeapon.recoveryMissMs);
+        enterRecovery(weapon.recoveryMissMs);
         return;
       }
+
+      // แก้บั๊ก 5: หักกระสุนตอน "ยิง" จริงทันที ไม่ใช่รอจนยืนยันว่าตีโดนเป้าหมายก่อน
+      // (ของเดิมหักกระสุนใน maybeBreakWeapon ซึ่งเรียกเฉพาะตอนตีโดน — ทำให้ยิงพลาด/ไม่มีเป้าในระยะได้ฟรีไม่จำกัดครั้ง
+      //  ทั้งที่ยังได้เสียงดังก้องเรียกมอนสเตอร์ทั้งแมพตามปกติ ขัดกับดีไซน์ "ปืน 6 นัด กระสุนหาเพิ่มไม่ได้")
+      revolverAmmo = Math.max(0, revolverAmmo - 1);
+      if (revolverAmmo <= 0) {
+        showItemNotification("ปืนพก: กระสุนหมด! ไม่มีกระสุนสำรอง");
+        removeWeaponFromInventory(weapon);
+      }
+      if (window.updateAct2HUD) window.updateAct2HUD();
+
       if (window.playGunshotSound) window.playGunshotSound();
-      emitNoise(camera.position.x, camera.position.z, currentWeapon.noiseRadius);
+      emitNoise(camera.position.x, camera.position.z, weapon.noiseRadius);
       // แสงแฟลชปากกระบอกปืน
       const flash = document.getElementById('camera-flash-overlay');
       if (flash) {
@@ -335,16 +356,27 @@
       }
     } else {
       if (window.playWeaponSwingSound) {
-        window.playWeaponSwingSound(currentWeapon.type);
+        window.playWeaponSwingSound(weapon.type);
       }
-      emitNoise(camera.position.x, camera.position.z, currentWeapon.noiseRadius);
+      emitNoise(camera.position.x, camera.position.z, weapon.noiseRadius);
+
+      // แก้บั๊ก 5: ถังดับเพลิงเสียสารตอน "พ่น" จริง ไม่ใช่ตอน "ตีโดน" เท่านั้น
+      // กันพ่นเปล่าไม่จำกัดครั้งตอนไม่มีเป้าหมายในระยะ/มุมโจมตี
+      if (weapon.type === 'fire_extinguisher') {
+        weapon.pressure = Math.max(0, (weapon.pressure || 100) - 25);
+        if (weapon.pressure <= 0) {
+          showItemNotification("ถังดับเพลิง: สารเคมีหมดเกลี้ยง!");
+          removeWeaponFromInventory(weapon);
+        }
+        if (window.updateAct2HUD) window.updateAct2HUD();
+      }
     }
 
-    const target = findNearestEntityInHitbox(currentWeapon.range);
+    const target = findNearestEntityInHitbox(weapon.range);
 
     if (!target) {
       // ตีวืด / ยิงพลาด
-      enterRecovery(currentWeapon.recoveryMissMs);
+      enterRecovery(weapon.recoveryMissMs);
       return;
     }
 
@@ -353,18 +385,26 @@
       // ตีไม่เข้า / ทะลุเงา (เช่น Smiler ไม่ได้สตัน)
       if (window.playWhiffThroughSound) window.playWhiffThroughSound();
       showItemNotification("<span style='color:#d95b5b;'>ฟาดทะลุกลุ่มเงา! ต้องใช้แสงสะกดมันก่อน</span>");
-      enterRecovery(currentWeapon.recoveryMissMs);
+      enterRecovery(weapon.recoveryMissMs);
       return;
     }
 
-    applyHitToEntity(target, currentWeapon, cfg);
-    maybeBreakWeapon(currentWeapon);
-    enterRecovery(currentWeapon.recoveryHitMs);
+    applyHitToEntity(target, weapon, cfg);
+    maybeBreakWeapon(weapon);
+    enterRecovery(weapon.recoveryHitMs);
   }
 
   // Input รับคำสั่งโจมตี
   window.onAttackInput = function() {
-    if (currentAct !== 2 || !window.gameEngineStarted || isJumpscareActive || isHiding) return;
+    if (currentAct !== 2 || !window.gameEngineStarted || isHiding) return;
+
+    // แก้บั๊ก 3: ระหว่างโดน The Gapped ลาก ปุ่มโจมตีใช้ "จัดการรอยแยกให้ถูกจังหวะ" แทนการโจมตีปกติ
+    if (typeof gappedGrabActive !== 'undefined' && gappedGrabActive) {
+      handleGappedSeamAttempt();
+      return;
+    }
+
+    if (isJumpscareActive) return;
     if (combatState !== 'IDLE') return;
 
     const now = performance.now();

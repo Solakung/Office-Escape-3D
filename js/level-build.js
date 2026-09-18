@@ -198,6 +198,60 @@
       cameraYaw = -3 * Math.PI / 4;
       cameraPitch = 0;
 
+      // แก้บั๊ก: currentAct ไม่เคยถูกรีเซ็ตกลับเป็น 1 ตอนกดเล่นใหม่/กลับหน้าหลัก
+      // ทำให้ผู้เล่นยังค้างอยู่ในสถานะ Act 2 (ระบบต่อสู้/HP/Sanity) ทั้งที่ HUD/แมพถูกรีเซ็ตกลับ Act 1 แล้ว
+      currentAct = 1;
+      window.currentAct = 1;
+      actTransitionActive = false;
+      window.actTransitionActive = false;
+      farewellSequenceActive = false;
+      window.farewellSequenceActive = false;
+
+      // รีเซ็ตสถานะทั้งหมดที่เกี่ยวกับ Act 2 (นักสืบ) กันค่าค้างข้ามรอบเล่น
+      deepStateActive = false;
+      window.deepStateActive = false;
+      act2StartTime = 0;
+      playerHP = 100;
+      playerSanity = 100;
+      anchorHeld = true;
+      lastAnchorUseTime = 0;
+      evidencePhotos = 0;
+      photographedLoreSet = new Set();
+      weaponsInventory = [];
+      currentWeapon = null;
+      revolverAmmo = 6;
+      firstAidKits = 1;
+      isHealing = false;
+      investigativeFlashlightOn = false;
+      flashlightBattery = 100;
+      combatState = 'IDLE';
+      combatStateUntil = 0;
+      playerMoveSpeedMult = 1.0;
+      cameraTurnSpeedMult = 1.0;
+      hitTinnitusUntil = 0;
+      screenBlurUntil = 0;
+      farewellNoteTriggered = false;
+      for (let i = 0; i < specialNotes.length; i++) {
+        if (specialNotes[i].mesh && scene) scene.remove(specialNotes[i].mesh);
+      }
+      specialNotes = [];
+      entityWoundStages = { smiler: 0, bacteria: 0, duller: 0, acidMan: 0 };
+      entityFleeState = { smiler: false, bacteria: false, duller: false, acidMan: false };
+      entityRespawnTime = { smiler: 0, bacteria: 0, duller: 0, acidMan: 0 };
+      entityStaggerUntil = { smiler: 0, bacteria: 0, duller: 0, acidMan: 0 };
+      entityEnrageUntil = { smiler: 0, bacteria: 0, duller: 0, acidMan: 0 };
+      gappedSeamHeldOpen = false;
+      gappedSeamOpenUntil = 0;
+      carriedEvidence = new Set();
+      for (let i = 0; i < activeAcidPools.length; i++) {
+        if (activeAcidPools[i].mesh && scene) scene.remove(activeAcidPools[i].mesh);
+      }
+      activeAcidPools = [];
+      for (let i = 0; i < weaponPickupMeshes.length; i++) {
+        if (weaponPickupMeshes[i].mesh && scene) scene.remove(weaponPickupMeshes[i].mesh);
+      }
+      weaponPickupMeshes = [];
+
       playerEnergy = 100;
       hasRevealedSanity = false;
 

@@ -77,14 +77,17 @@
 
   // เปลี่ยน HUD ระหว่าง Act 1 (พนักงานออฟฟิศ) และ Act 2 (นักสืบ)
   window.swapHudForAct = function(act) {
+    // แก้บั๊ก: id เดิม 'act2-hud-group' ไม่มีอยู่จริงใน index.html (ของจริงคือ 'act2-hud-elements')
+    // ทำให้ hudAct2 เป็น null เสมอ (โค้ดขยะ ไม่เคยถูกใช้งาน) — ตัดทิ้ง และเพิ่มการซ่อน/โชว์ hudAct1 ให้ครบ
+    // เพื่อไม่ให้แถบ HUD ของ Act 1 (ป้าย "ENERGY:"/"HP:" เก่า) ค้างซ้อนทับ HUD ของ Act 2 จริง
     const hudAct1 = document.getElementById('act1-hud-group');
-    const hudAct2 = document.getElementById('act2-hud-group');
     const subTitle = document.getElementById('hud-subtitle');
     const objText = document.getElementById('objective-text');
     const meterLabel = document.getElementById('meter-label');
     const bottleContainer = document.getElementById('bottle-container');
 
     if (act === 2) {
+      if (hudAct1) hudAct1.style.display = 'none';
       if (subTitle) subTitle.innerHTML = `<span style="color:#d95b5b;">● DETECTIVE CASE</span> // FILE #94-B`;
       if (objText) {
         objText.style.color = '#e3cc62';
@@ -92,7 +95,7 @@
       }
       if (meterLabel) meterLabel.innerText = "HP:";
       if (bottleContainer) bottleContainer.style.display = 'none'; // นมถูกแทนที่ด้วยอาวุธและชุดปฐมพยาบาลใน Act 2
-      
+
       let act2Container = document.getElementById('act2-hud-elements');
       if (act2Container) act2Container.style.display = 'block';
 
@@ -100,6 +103,7 @@
       const act2Touch = document.getElementById('act2-touch-controls');
       if (act2Touch) act2Touch.style.display = 'flex';
     } else {
+      if (hudAct1) hudAct1.style.display = 'block';
       if (subTitle) subTitle.innerText = "BLDG-A: 4F // OFFICE FLOOR";
       if (objText) {
         objText.style.color = '#8fc4ff';

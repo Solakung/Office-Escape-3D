@@ -34,6 +34,15 @@
       }, holdTime);
     }
 
+    // แก้บั๊ก: entityStaggerUntil/entityEnrageUntil (ตั้งค่าไว้จาก combat.js ตอนโดนตี) ไม่เคยถูก AI loop
+    // ของแต่ละตัวอ่านมาใช้เลย ทำให้ "ชะงัก/คลั่ง" มีแค่ข้อความ ไม่กระทบความเร็วจริงตามสเปก 2.5
+    function getWoundSpeedMult(type, now) {
+      if (currentAct !== 2) return 1.0;
+      if (entityStaggerUntil[type] && entityStaggerUntil[type] > now) return 0.35; // ชะงักจากบาดแผล เดินช้าลงมาก
+      if (entityEnrageUntil[type] && entityEnrageUntil[type] > now) return 1.6;    // คลั่งชั่วคราว เร็วขึ้น
+      return 1.0;
+    }
+
     function renderNoise() {
       if (!staticCtx) {
         if (!staticCanvas) staticCanvas = document.getElementById('noise-canvas');
@@ -835,7 +844,23 @@
         // =========================================================
         // AI 1: The Smiler (ลอยเคว้งส่าย + อ้าขากรรไกร 3D)
         // =========================================================
-        const distSmiler = smilerRig.position.distanceTo(camera.position);
+        // แก้บั๊ก 2.5: ตอนบาดเจ็บครบแล้ว triggerFleeSequence() (combat.js) ตั้ง entityFleeState ไว้
+        // แต่ไม่มีจุดไหนใน AI loop นี้เคยอ่านค่ามันเลย -> ต้องเช็คตรงนี้ก่อนอย่างอื่น: ซ่อนตัว + รอ respawn
+        let smilerIsFleeing = (currentAct === 2 && entityFleeState.smiler);
+        if (smilerIsFleeing) {
+          smilerRig.visible = false;
+          if (now >= entityRespawnTime.smiler) {
+            const respawnSpot = getRandomFloorCellNear(camera.position.x, camera.position.z, CHEAT_MIN_DIST, CHEAT_MAX_DIST) || getRandomFloorCell();
+            if (respawnSpot) { smilerRig.position.x = respawnSpot.x; smilerRig.position.z = respawnSpot.z; }
+            entityFleeState.smiler = false;
+            entityWoundStages.smiler = 0;
+            smilerState = 'PATROL';
+            smilerWaypoint = null;
+            smilerRig.visible = true;
+            smilerIsFleeing = false;
+          }
+        }
+        const distSmiler = smilerIsFleeing ? Infinity : smilerRig.position.distanceTo(camera.position);
 
         if (smilerState === 'STUNNED' && now < smilerStunUntil) {
           // โดนแฟลชจ่อหน้าไปแล้ว - นิ่งงงไร้พิษภัยอยู่ชั่วคราว ทำร้ายผู้เล่นไม่ได้ระหว่างนี้
@@ -874,7 +899,7 @@
             smilerRig.lookAt(camera.position.x, smilerRig.position.y, camera.position.z);
           } else {
             playerEnergy = Math.max(0, playerEnergy - 1.2 * dt);
-            smilerSpeed = (distSmiler < 9.0) ? 4.15 : (isBlackout ? 3.2 : 2.3);
+            smilerSpeed = ((distSmiler < 9.0) ? 4.15 : (isBlackout ? 3.2 : 2.3)) * getWoundSpeedMult('smiler', now);
             smilerRig.position.x += dir.x * smilerSpeed * dt;
             smilerRig.position.z += dir.z * smilerSpeed * dt;
             smilerRig.lookAt(camera.position.x, smilerRig.position.y, camera.position.z);
@@ -899,12 +924,12 @@
 
           if (now < smilerSearchUntil) {
             // เพิ่งคลาดกับผู้เล่น — เดินวนดูจุดที่เห็นล่าสุดก่อนสักพัก แทนที่จะเปลี่ยนทิศหนีไปเลยทันที
-            smilerSpeed = SEARCH_SPEED;
+            smilerSpeed = SEARCH_SPEED * getWoundSpeedMult('smiler', now);
             if (!smilerWaypoint || smilerRig.position.distanceTo(smilerWaypoint) < 2.0) {
               smilerWaypoint = getRandomFloorCellNear(smilerLastKnownPos.x, smilerLastKnownPos.z, 0, 5) || smilerLastKnownPos.clone();
             }
           } else {
-            smilerSpeed = 1.3;
+            smilerSpeed = 1.3 * getWoundSpeedMult('smiler', now);
 
             // แอบโกง: ถึงเวลาแล้ววาปมาป้วนเปี้ยนใกล้ๆผู้เล่นบ้าง (ไม่โกงตอนผู้เล่นซ่อนตัวอยู่)
             if (!isHiding && now > smilerNextCheatTime) {
@@ -963,12 +988,27 @@
         // =========================================================
         // AI 2: The Bacteria (3D Rig ก้าวขาเดินจริง + โยกตัว)
         // =========================================================
-        const distBacteria = bacteriaRig.position.distanceTo(camera.position);
+        // แก้บั๊ก 2.5: เช็คสถานะ "หนีหลังบาดเจ็บ" ก่อนอย่างอื่น เหมือน Smiler
+        let bacteriaIsFleeing = (currentAct === 2 && entityFleeState.bacteria);
+        if (bacteriaIsFleeing) {
+          bacteriaRig.visible = false;
+          if (now >= entityRespawnTime.bacteria) {
+            const respawnSpot = getRandomFloorCellNear(camera.position.x, camera.position.z, CHEAT_MIN_DIST, CHEAT_MAX_DIST) || getRandomFloorCell();
+            if (respawnSpot) { bacteriaRig.position.x = respawnSpot.x; bacteriaRig.position.z = respawnSpot.z; }
+            entityFleeState.bacteria = false;
+            entityWoundStages.bacteria = 0;
+            bacteriaState = 'PATROL';
+            bacteriaWaypoint = null;
+            bacteriaRig.visible = true;
+            bacteriaIsFleeing = false;
+          }
+        }
+        const distBacteria = bacteriaIsFleeing ? Infinity : bacteriaRig.position.distanceTo(camera.position);
 
         if (!isHiding && distBacteria < 27 * detectMult) {
           bacteriaState = 'CHASE';
           playerEnergy = Math.max(0, playerEnergy - 1.0 * dt);
-          bacteriaSpeed = (distBacteria < 11) ? 3.85 : (isBlackout ? 3.0 : 2.4);
+          bacteriaSpeed = ((distBacteria < 11) ? 3.85 : (isBlackout ? 3.0 : 2.4)) * getWoundSpeedMult('bacteria', now);
 
           bacteriaLastKnownPos.copy(camera.position);
           bacteriaSearchUntil = now + SEARCH_LINGER_MS;
@@ -984,7 +1024,10 @@
           bacteriaRig.position.z += sDir.z * bacteriaSpeed * dt;
           bacteriaRig.lookAt(camera.position.x, bacteriaRig.position.y, camera.position.z);
 
-          if (distBacteria < 1.45) {
+          // Deep State (2.3/2.4): แขนมันยาวขึ้น (reachBonus) ตีโดนผู้เล่นได้จากระยะไกลกว่าปกติ
+          const bacteriaCfg = window.getEffectiveEntityConfig ? window.getEffectiveEntityConfig('bacteria') : null;
+          const bacteriaAttackRange = 1.45 + ((bacteriaCfg && bacteriaCfg.reachBonus) || 0);
+          if (distBacteria < bacteriaAttackRange) {
             if (currentAct === 1) {
               isJumpscareActive = true;
               jumpscareTargetRig = bacteriaRig;
@@ -1002,12 +1045,12 @@
           }
 
           if (now < bacteriaSearchUntil) {
-            bacteriaSpeed = SEARCH_SPEED;
+            bacteriaSpeed = SEARCH_SPEED * getWoundSpeedMult('bacteria', now);
             if (!bacteriaWaypoint || bacteriaRig.position.distanceTo(bacteriaWaypoint) < 2.0) {
               bacteriaWaypoint = getRandomFloorCellNear(bacteriaLastKnownPos.x, bacteriaLastKnownPos.z, 0, 5) || bacteriaLastKnownPos.clone();
             }
           } else {
-            bacteriaSpeed = 1.2;
+            bacteriaSpeed = 1.2 * getWoundSpeedMult('bacteria', now);
 
             // แอบโกง: ถึงเวลาแล้ววาปมาป้วนเปี้ยนใกล้ๆผู้เล่นบ้าง (ไม่โกงตอนผู้เล่นซ่อนตัวอยู่)
             if (!isHiding && now > bacteriaNextCheatTime) {
@@ -1063,20 +1106,39 @@
         // =========================================================
         // AI 3: The Duller (3D Rig คลาน 4 ขาตามพื้นพรม)
         // =========================================================
-        const distDuller = dullerRig.position.distanceTo(camera.position);
+        // แก้บั๊ก 2.5: เช็คสถานะ "หนีหลังบาดเจ็บ" ก่อนอย่างอื่น เหมือน Smiler/Bacteria
+        let dullerIsFleeing = (currentAct === 2 && entityFleeState.duller);
+        if (dullerIsFleeing) {
+          dullerRig.visible = false;
+          if (now >= entityRespawnTime.duller) {
+            const respawnSpot = getRandomFloorCellNear(camera.position.x, camera.position.z, CHEAT_MIN_DIST, CHEAT_MAX_DIST) || getRandomFloorCell();
+            if (respawnSpot) { dullerRig.position.x = respawnSpot.x; dullerRig.position.z = respawnSpot.z; }
+            entityFleeState.duller = false;
+            entityWoundStages.duller = 0;
+            dullerState = 'PATROL';
+            dullerWaypoint = null;
+            dullerRig.visible = true;
+            dullerIsFleeing = false;
+          }
+        }
+        const distDuller = dullerIsFleeing ? Infinity : dullerRig.position.distanceTo(camera.position);
+
+        // Deep State (2.3): หูไวขึ้นอีก (hearingRadiusBonus) ได้ยินเสียงจากระยะไกลกว่าปกติ
+        const dullerCfgForHearing = window.getEffectiveEntityConfig ? window.getEffectiveEntityConfig('duller') : null;
+        const dullerLungeTriggerDist = DULLER_LUNGE_TRIGGER_DIST + ((dullerCfgForHearing && dullerCfgForHearing.hearingRadiusBonus) || 0);
 
         // The Duller ตาบอด ไม่สนไฟฉายเปิด/ปิดเลย (ระยะตรวจจับคงที่) แต่หูไวมาก
         // เสียงสปรินท์/ชัตเตอร์กล้องจะดึงมันมาจากระยะไกลกว่าระยะมองเห็นปกติ:
         //  - ได้ยินตอนอยู่ไกล  -> วิ่งไล่ตามตัวผู้เล่นสดๆ (state 'CHASE', ปรับทิศทุกเฟรมตามที่ผู้เล่นขยับ)
         //  - ได้ยินตอนอยู่ใกล้ -> พุ่งใส่ "ตำแหน่งที่เกิดเสียง" แบบเจาะจง (state 'LUNGE', ล็อกจุดหมายไว้ ไม่ตามตัวผู้เล่นระหว่างพุ่ง)
-        const dullerNoiseFresh = !!recentNoise && (now - recentNoise.time < 700);
+        const dullerNoiseFresh = !dullerIsFleeing && !!recentNoise && (now - recentNoise.time < 700);
         const distDullerToNoise = dullerNoiseFresh
           ? Math.hypot(dullerRig.position.x - recentNoise.x, dullerRig.position.z - recentNoise.z)
           : Infinity;
         const dullerNoiseHeard = dullerNoiseFresh && distDullerToNoise < recentNoise.radius;
-        const dullerNoiseCloseEnoughToLunge = dullerNoiseHeard && distDullerToNoise < DULLER_LUNGE_TRIGGER_DIST;
+        const dullerNoiseCloseEnoughToLunge = dullerNoiseHeard && distDullerToNoise < dullerLungeTriggerDist;
 
-        if (isHiding && dullerState === 'LUNGE') {
+        if (!dullerIsFleeing && isHiding && dullerState === 'LUNGE') {
           // ผู้เล่นซ่อนตัวไปแล้วระหว่างที่มันกำลังพุ่ง -> เลิกพุ่ง ไปค้นหาแถวจุดเสียงแทน
           dullerState = 'PATROL';
           dullerLastKnownPos.copy(dullerLungeTarget);
@@ -1090,9 +1152,9 @@
           dullerLungeUntil = now + DULLER_LUNGE_MAX_MS;
         }
 
-        if (dullerState === 'LUNGE') {
+        if (!dullerIsFleeing && dullerState === 'LUNGE') {
           playerEnergy = Math.max(0, playerEnergy - 0.9 * dt);
-          dullerSpeed = DULLER_LUNGE_SPEED;
+          dullerSpeed = DULLER_LUNGE_SPEED * getWoundSpeedMult('duller', now);
 
           if (dullerSoundGain && audioCtx && audioCtx.state === 'running') {
             const dVol = Math.max(0, 1 - distDuller / 18) * 0.25;
@@ -1124,10 +1186,10 @@
               applyMonsterAttackToPlayer('duller', 28, 14);
             }
           }
-        } else if (!isHiding && (distDuller < DULLER_BASE_DETECT_RANGE || dullerNoiseHeard)) {
+        } else if (!dullerIsFleeing && !isHiding && (distDuller < DULLER_BASE_DETECT_RANGE || dullerNoiseHeard)) {
           dullerState = 'CHASE';
           playerEnergy = Math.max(0, playerEnergy - 0.9 * dt);
-          dullerSpeed = (distDuller < 10.0) ? 4.2 : 2.5;
+          dullerSpeed = ((distDuller < 10.0) ? 4.2 : 2.5) * getWoundSpeedMult('duller', now);
 
           dullerLastKnownPos.copy(camera.position);
           dullerSearchUntil = now + SEARCH_LINGER_MS;
@@ -1161,12 +1223,12 @@
           }
 
           if (now < dullerSearchUntil) {
-            dullerSpeed = SEARCH_SPEED;
+            dullerSpeed = SEARCH_SPEED * getWoundSpeedMult('duller', now);
             if (!dullerWaypoint || dullerRig.position.distanceTo(dullerWaypoint) < 2.0) {
               dullerWaypoint = getRandomFloorCellNear(dullerLastKnownPos.x, dullerLastKnownPos.z, 0, 5) || dullerLastKnownPos.clone();
             }
           } else {
-            dullerSpeed = 1.3;
+            dullerSpeed = 1.3 * getWoundSpeedMult('duller', now);
 
             // แอบโกง: ถึงเวลาแล้ววาปมาป้วนเปี้ยนใกล้ๆผู้เล่นบ้าง (ไม่โกงตอนผู้เล่นซ่อนตัวอยู่)
             if (!isHiding && now > dullerNextCheatTime) {
@@ -1219,12 +1281,27 @@
         // =========================================================
         // AI 4: The Acid Man (เดินสองขาตามล่าตรงๆ + ถ่มกรดใส่จากระยะไกล)
         // =========================================================
-        const distAcidMan = acidManRig.position.distanceTo(camera.position);
+        // แก้บั๊ก 2.5: เช็คสถานะ "หนีหลังบาดเจ็บ" ก่อนอย่างอื่น เหมือนตัวอื่นๆ
+        let acidManIsFleeing = (currentAct === 2 && entityFleeState.acidMan);
+        if (acidManIsFleeing) {
+          acidManRig.visible = false;
+          if (now >= entityRespawnTime.acidMan) {
+            const respawnSpot = getRandomFloorCellNear(camera.position.x, camera.position.z, CHEAT_MIN_DIST, CHEAT_MAX_DIST) || getRandomFloorCell();
+            if (respawnSpot) { acidManRig.position.x = respawnSpot.x; acidManRig.position.z = respawnSpot.z; }
+            entityFleeState.acidMan = false;
+            entityWoundStages.acidMan = 0;
+            acidManState = 'PATROL';
+            acidManWaypoint = null;
+            acidManRig.visible = true;
+            acidManIsFleeing = false;
+          }
+        }
+        const distAcidMan = acidManIsFleeing ? Infinity : acidManRig.position.distanceTo(camera.position);
 
-        if (!isHiding && distAcidMan < ACIDMAN_BASE_DETECT_RANGE * detectMult) {
+        if (!acidManIsFleeing && !isHiding && distAcidMan < ACIDMAN_BASE_DETECT_RANGE * detectMult) {
           acidManState = 'CHASE';
           playerEnergy = Math.max(0, playerEnergy - 0.9 * dt);
-          acidManSpeed = (distAcidMan < 9.0) ? 3.3 : (isBlackout ? 2.5 : 2.0);
+          acidManSpeed = ((distAcidMan < 9.0) ? 3.3 : (isBlackout ? 2.5 : 2.0)) * getWoundSpeedMult('acidMan', now);
 
           acidManLastKnownPos.copy(camera.position);
           acidManSearchUntil = now + SEARCH_LINGER_MS;
@@ -1279,19 +1356,19 @@
               applyMonsterAttackToPlayer('acidMan', 28, 14);
             }
           }
-        } else {
+        } else if (!acidManIsFleeing) {
           acidManState = 'PATROL';
           if (acidSoundGain && audioCtx && audioCtx.state === 'running') {
             acidSoundGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
           }
 
           if (now < acidManSearchUntil) {
-            acidManSpeed = SEARCH_SPEED;
+            acidManSpeed = SEARCH_SPEED * getWoundSpeedMult('acidMan', now);
             if (!acidManWaypoint || acidManRig.position.distanceTo(acidManWaypoint) < 2.0) {
               acidManWaypoint = getRandomFloorCellNear(acidManLastKnownPos.x, acidManLastKnownPos.z, 0, 5) || acidManLastKnownPos.clone();
             }
           } else {
-            acidManSpeed = 1.1;
+            acidManSpeed = 1.1 * getWoundSpeedMult('acidMan', now);
 
             if (!isHiding && now > acidManNextCheatTime) {
               const cheatSpot = getRandomFloorCellNear(camera.position.x, camera.position.z, CHEAT_MIN_DIST, CHEAT_MAX_DIST);
@@ -1447,7 +1524,8 @@
           if (distToTarget < 0.6 || proj.life > 2.5) {
             // ถึงเป้าหมาย (หรือหมดเวลา) — เช็คว่าผู้เล่นยังอยู่ใกล้จุดตกพอจะโดนสาดหรือไม่
             const hitDist = proj.mesh.position.distanceTo(camera.position);
-            if (hitDist < 2.2 && !isHiding && !isJumpscareActive) {
+            const splashHit = hitDist < 2.2 && !isHiding && !isJumpscareActive;
+            if (splashHit) {
               playerEnergy = Math.max(0, playerEnergy - ACID_SPLASH_DAMAGE);
               updateEnergyHUD();
               acidShakeUntil = now + 380;
@@ -1463,6 +1541,26 @@
                 }, 30);
               }
               if (playAcidSizzleSound) playAcidSizzleSound();
+            } else {
+              // Deep State (2.3/2.4): กรดที่ถ่มพลาดไม่ได้หายไปเฉยๆ แต่กองเป็นแอซิดพูลค้างพื้นไว้
+              const acidCfg = window.getEffectiveEntityConfig ? window.getEffectiveEntityConfig('acidMan') : null;
+              if (deepStateActive && acidCfg && acidCfg.acidPoolOnMiss) {
+                const poolGeo = new THREE.CircleGeometry(0.9, 16);
+                const poolMat = new THREE.MeshStandardMaterial({
+                  color: 0x8fef2a, emissive: 0x3d6b10, emissiveIntensity: 1.1,
+                  roughness: 0.3, transparent: true, opacity: 0.75, side: THREE.DoubleSide
+                });
+                const poolMesh = new THREE.Mesh(poolGeo, poolMat);
+                poolMesh.rotation.x = -Math.PI / 2;
+                poolMesh.position.set(proj.mesh.position.x, 0.03, proj.mesh.position.z);
+                scene.add(poolMesh);
+                activeAcidPools.push({
+                  mesh: poolMesh,
+                  x: proj.mesh.position.x,
+                  z: proj.mesh.position.z,
+                  expiresAt: now + (acidCfg.acidPoolDurationMs || 15000)
+                });
+              }
             }
             scene.remove(proj.mesh);
             acidProjectiles.splice(pi, 1);
@@ -1472,6 +1570,25 @@
             proj.mesh.position.y += Math.sin(proj.life * 14) * 0.006; // สั่นเล็กน้อยระหว่างบิน
             proj.mesh.rotation.x += dt * 10;
             proj.mesh.rotation.y += dt * 7;
+          }
+        }
+
+        // อัพเดตแอซิดพูลที่กองอยู่กับพื้นจาก Deep State (2.3): เอฟเฟกต์กัดกร่อน + สลายตัวเมื่อหมดเวลา
+        if (activeAcidPools.length > 0) {
+          for (let poi = activeAcidPools.length - 1; poi >= 0; poi--) {
+            const pool = activeAcidPools[poi];
+            if (now > pool.expiresAt) {
+              if (pool.mesh && scene) scene.remove(pool.mesh);
+              activeAcidPools.splice(poi, 1);
+              continue;
+            }
+            pool.mesh.material.opacity = 0.4 + Math.sin(now * 0.004 + poi) * 0.15;
+            const distToPool = Math.hypot(camera.position.x - pool.x, camera.position.z - pool.z);
+            if (distToPool < 1.1 && !isHiding && now > acidBurnUntil) {
+              // เหยียบเข้าแอซิดพูล -> โดนแผลไหม้กัดกร่อนเหมือนโดนสาดตรงๆ แต่ไม่มีความเสียหายทันที (ค่อยๆ กัดกร่อน)
+              acidBurnUntil = now + ACID_BURN_DURATION;
+              if (playAcidSizzleSound) playAcidSizzleSound();
+            }
           }
         }
 
@@ -1551,6 +1668,19 @@
         }
         } // จบเงื่อนไข firstBlackoutOccurred: ปิดการทำงานของ entity ทั้งหมดก่อนไฟดับครั้งแรก
 
+        // แก้บั๊ก 3: เดิม hardcode ส่ง false เข้า evaluateEnding() ทำให้ ENDING_TRUE_ESCAPE/ENDING_TRUE_COMPLETE
+        // เป็นไปไม่ได้เลยในเกม ตอนนี้ gappedSeamHeldOpen ถูกตั้งจริงจาก handleGappedSeamAttempt() (combat.js)
+        // เมื่อผู้เล่นรับมือการลากของ The Gapped ได้ถูกจังหวะ — เช็คว่ายังอยู่ในช่วงเวลาที่รอยแยกค้างเปิดอยู่ไหมด้วย
+        if (gappedSeamHeldOpen && now > gappedSeamOpenUntil) {
+          gappedSeamHeldOpen = false;
+          const closeNotif = document.getElementById('item-notification');
+          if (closeNotif) {
+            closeNotif.innerHTML = `<span style="color:#d95b5b;">รอยแยกปิดลงแล้ว...</span>`;
+            closeNotif.style.display = 'block';
+            setTimeout(() => { closeNotif.style.display = 'none'; }, 2400);
+          }
+        }
+
         // ทางออกฉุกเฉิน (ต้องเก็บบัตรผ่านให้ครบก่อน)
         if (camera.position.distanceTo(exitPos) < 2.0) {
           if (keycardsCollected >= KEYCARDS_REQUIRED) {
@@ -1559,7 +1689,7 @@
             } else {
               const ending = window.evaluateEnding({
                 atExitDoor: true,
-                gappedSeamHeldOpen: false,
+                gappedSeamHeldOpen: (gappedSeamHeldOpen && now < gappedSeamOpenUntil),
                 sanity: playerSanity,
                 evidencePhotos: evidencePhotos,
                 keycardsCollected: keycardsCollected
