@@ -1356,7 +1356,7 @@
               applyMonsterAttackToPlayer('acidMan', 28, 14);
             }
           }
-        } else if (!acidManIsFleeing) {
+        } else {
           acidManState = 'PATROL';
           if (acidSoundGain && audioCtx && audioCtx.state === 'running') {
             acidSoundGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
