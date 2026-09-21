@@ -72,10 +72,18 @@
     function useAlmondBottle() {
       if (!window.gameEngineStarted || isJumpscareActive || isHiding) return;
       if (almondInventory <= 0) return;
-      if (playerEnergy >= 100) return; // เต็มอยู่แล้ว ไม่ต้องเปลือง
+      // องก์ 2 ใช้ playerSanity เป็นค่าสติจริง (playerEnergy ถูกซิงก์ทับจาก playerSanity ทุกเฟรม ถ้าไปเพิ่มที่ playerEnergy นมจะเสียเปล่า)
+      const inAct2 = (currentAct === 2);
+      if (inAct2 ? playerSanity >= 100 : playerEnergy >= 100) return; // เต็มอยู่แล้ว ไม่ต้องเปลือง
 
       almondInventory--;
-      playerEnergy = Math.min(100, playerEnergy + ALMOND_RESTORE_AMOUNT);
+      if (inAct2) {
+        playerSanity = Math.min(100, playerSanity + ALMOND_RESTORE_AMOUNT);
+        playerEnergy = Math.max(0, Math.min(100, playerSanity));
+        if (window.updateAct2HUD) window.updateAct2HUD();
+      } else {
+        playerEnergy = Math.min(100, playerEnergy + ALMOND_RESTORE_AMOUNT);
+      }
       playDrinkSound();
       updateEnergyHUD();
 

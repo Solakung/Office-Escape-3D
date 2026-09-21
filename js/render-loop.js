@@ -168,7 +168,27 @@
 
       const objText = document.getElementById('objective-text');
       if (objText) {
-        objText.innerHTML = `หลักฐานคดี: <b>${evidencePhotos}/12 ชิ้น</b> (กด F ถ่ายรูป)`;
+        const seamNow = performance.now();
+        const seamTxt = (gappedSeamHeldOpen && seamNow < gappedSeamOpenUntil)
+          ? ` <span style="color:#78f0d8;">🌀 รอยแยกเปิดอยู่ ${Math.ceil((gappedSeamOpenUntil - seamNow) / 1000)} วิ — ไป EXIT!</span>`
+          : '';
+        objText.innerHTML = `หลักฐานคดี: <b>${evidencePhotos}/12 ชิ้น</b> (กด F ถ่ายรูป)${seamTxt}`;
+      }
+
+      // ขวดนมอัลมอนด์ยังใช้ในองก์ 2 (Q ดื่มฟื้น Sanity / G ขว้างล่อ Duller) แต่ตัวนับเดิมอยู่ใน act1-hud-group ที่ซ่อนไปแล้ว
+      // จึงต้องมีตัวนับของตัวเองใน HUD องก์ 2 ไม่งั้นผู้เล่นไม่รู้ว่ามีกี่ขวด
+      let almondEl = document.getElementById('act2-almond-status');
+      if (!almondEl) {
+        const act2Container = document.getElementById('act2-hud-elements');
+        if (act2Container) {
+          almondEl = document.createElement('div');
+          almondEl.id = 'act2-almond-status';
+          almondEl.style.cssText = 'font-size:10px;margin-top:2px;color:#d9c98a;';
+          act2Container.appendChild(almondEl);
+        }
+      }
+      if (almondEl) {
+        almondEl.innerHTML = `🥛 นมอัลมอนด์: <b>${almondInventory}/${ALMOND_INVENTORY_MAX}</b> <span style="opacity:0.7;">[Q ดื่ม | G ขว้าง]</span>`;
       }
     };
 
@@ -207,6 +227,7 @@
         // =========================================================
         if (gappedGrabActive && gappedRig) {
           const gElapsed = now - gappedGrabStartTime;
+          if (currentAct === 2 && window.updateGappedSeamCue) window.updateGappedSeamCue(gElapsed);
 
           const voidWorldPos = new THREE.Vector3();
           if (gappedFaceAnchor) gappedFaceAnchor.getWorldPosition(voidWorldPos);
@@ -269,7 +290,9 @@
               updateEnergyHUD();
             } else {
               playerSanity = Math.max(0, playerSanity - 22);
-              playerHP = Math.max(0, playerHP - 15);
+              // The Gapped "ไม่ฆ่า" ตามคอนเซ็ปต์ — ลด HP ได้แต่ไม่ให้ตกถึง 0 จากการโดนลากอย่างเดียว
+              // (เดิมลดได้ถึง 0 แต่ไม่มีจุดไหนเช็คตายหลังโดนลาก ผู้เล่นเลยค้างอยู่ที่ HP 0 แบบไม่ตายไม่รอด)
+              playerHP = Math.max(1, playerHP - 15);
               if (window.updateAct2HUD) window.updateAct2HUD();
             }
 
@@ -277,7 +300,13 @@
             staticCanvas.style.opacity = 0;
 
             const notif = document.getElementById('item-notification');
-            notif.innerText = 'มันลากคุณผ่านรอยแยก... คุณโผล่มาอีกจุดหนึ่งแล้ว';
+            // ถ้ารั้งรอยแยกไว้ได้ถูกจังหวะ ข้อความ "สำเร็จ" จาก combat.js อยู่บนจอแค่เสี้ยววินาทีก่อนโดนวาป
+            // จึงย้ำอีกครั้งตรงนี้ ไม่งั้นผู้เล่นจะไม่รู้ว่ารอยแยกยังเปิดค้างอยู่และต้องรีบไป EXIT
+            if (currentAct === 2 && gappedSeamHeldOpen && now < gappedSeamOpenUntil) {
+              notif.innerHTML = '<span style="color:#78f0d8;">🌀 รอยแยกยังเปิดค้างอยู่! รีบไปที่ EXIT ก่อนมันปิด</span>';
+            } else {
+              notif.innerText = 'มันลากคุณผ่านรอยแยก... คุณโผล่มาอีกจุดหนึ่งแล้ว';
+            }
             notif.style.display = 'block';
             setTimeout(() => { notif.style.display = 'none'; }, 2600);
           }
@@ -511,10 +540,18 @@
         updateFlashlightIndicator();
 
         // ระบบลดค่า Energy / Sanity
-        let drainRate = 0.45 * dt;
-        if (isBlackout) drainRate = 1.5 * dt;
-        if (now < acidBurnUntil) drainRate += ACID_BURN_DRAIN_PER_SEC * dt; // แผลกรดยังกัดกร่อนต่อเนื่อง
-        playerEnergy = Math.max(0, playerEnergy - drainRate);
+        if (currentAct === 2) {
+          // แก้บั๊ก: ในองก์ 2 HUD แถบ ENERGY ของ Act 1 ถูกซ่อนแล้ว (ใช้ HP/Sanity แทน) แต่ playerEnergy เดิมยังลดลงเองตลอด
+          // และพอแตะ 0 ก็ขึ้นจอ "INSANITY OVERTAKEN" ทั้งที่แถบ HP/Sanity ที่ผู้เล่นเห็นยังเต็มอยู่ (ตายด้วยค่าที่มองไม่เห็น)
+          // ตอนนี้องก์ 2 ไม่ลด/ไม่เช็คตายจาก playerEnergy อีกต่อไป แต่ซิงก์ให้เท่ากับ playerSanity ไว้
+          // เพราะเอฟเฟกต์ภาพ/เสียง/ไฟกระพริบหลายจุดอ่านจาก playerEnergy เป็น "ระดับสติ" (sanityFactor / corruption)
+          playerEnergy = Math.max(0, Math.min(100, playerSanity));
+        } else {
+          let drainRate = 0.45 * dt;
+          if (isBlackout) drainRate = 1.5 * dt;
+          if (now < acidBurnUntil) drainRate += ACID_BURN_DRAIN_PER_SEC * dt; // แผลกรดยังกัดกร่อนต่อเนื่อง
+          playerEnergy = Math.max(0, playerEnergy - drainRate);
+        }
         updateEnergyHUD();
 
         let fovWarp = 0;
@@ -557,25 +594,26 @@
           }
         }
 
-        if (playerEnergy <= 0) {
-          if (currentAct === 1) {
-            // ในองก์ 1 สติหมด = สลับเข้าสู่องก์ 2 ทันที
-            if (window.onAct1Caught) window.onAct1Caught();
-            renderer.render(scene, camera);
-            return;
-          } else {
-            window.gameEngineStarted = false;
-            document.getElementById('over-title').innerText = "INSANITY OVERTAKEN";
-            document.getElementById('over-desc').innerHTML = "สติของคุณแตกสลายโดยสมบูรณ์...<br><b>คุณกลายสภาพเป็นส่วนหนึ่งของ The Backrooms</b>";
-            document.getElementById('survival-time-over').innerText = `เวลาที่รอดมาได้: ${window.formatSurvivalTime(now - window.gameStartTime)}`;
-            document.getElementById('over-menu').style.display = 'flex';
-            return;
-          }
+        if (currentAct === 1 && playerEnergy <= 0) {
+          // ในองก์ 1 สติหมด = สลับเข้าสู่องก์ 2 ทันที
+          // (องก์ 2 ไม่ตายจาก playerEnergy แล้ว — สติหมดในองก์ 2 ไปจบที่ ENDING_BECOME_ENTITY จากเช็ค playerSanity ด้านล่างแทน)
+          if (window.onAct1Caught) window.onAct1Caught();
+          renderer.render(scene, camera);
+          return;
         }
 
         // ในองก์ 2: สติ (Sanity) ค่อยๆ ลดลงตามเวลา และอัพเดต Deep State
         if (currentAct === 2) {
           playerSanity = Math.max(0, playerSanity - 0.08 * dt);
+          // แผลกรดกัดกร่อน (โดนสาด/เหยียบแอซิดพูล) ในองก์ 2 กัดที่ Sanity จริง แทน playerEnergy ที่ไม่ได้ใช้แล้ว
+          if (now < acidBurnUntil) playerSanity = Math.max(0, playerSanity - ACID_BURN_DRAIN_PER_SEC * dt);
+          // HP หมดจากแหล่งที่ไม่ผ่าน applyMonsterAttackToPlayer (เช่นกรดสาด) — ไม่มีจุดอื่นเช็คตาย ต้องเช็คตรงนี้
+          if (playerHP <= 0 && !isJumpscareActive && !window.actTransitionActive) {
+            if (window.triggerEndingSequence) {
+              window.triggerEndingSequence('ENDING_BECOME_ENTITY', 'wounds');
+              return;
+            }
+          }
           if (playerSanity <= 0 && !window.actTransitionActive) {
             if (window.triggerEndingSequence) {
               window.triggerEndingSequence('ENDING_BECOME_ENTITY');
@@ -1526,8 +1564,15 @@
             const hitDist = proj.mesh.position.distanceTo(camera.position);
             const splashHit = hitDist < 2.2 && !isHiding && !isJumpscareActive;
             if (splashHit) {
-              playerEnergy = Math.max(0, playerEnergy - ACID_SPLASH_DAMAGE);
-              updateEnergyHUD();
+              if (currentAct === 2) {
+                // องก์ 2 ความเสียหายต้องลง HP/Sanity จริง (playerEnergy ถูกซิงก์ทับจาก playerSanity ทุกเฟรม กรดเลยจะไม่มีผลอะไรเลยถ้าลดที่ค่านั้น)
+                playerHP = Math.max(0, playerHP - ACID_SPLASH_DAMAGE);
+                playerSanity = Math.max(0, playerSanity - ACID_SPLASH_DAMAGE * 0.5);
+                if (window.updateAct2HUD) window.updateAct2HUD();
+              } else {
+                playerEnergy = Math.max(0, playerEnergy - ACID_SPLASH_DAMAGE);
+                updateEnergyHUD();
+              }
               acidShakeUntil = now + 380;
               acidBurnUntil = now + ACID_BURN_DURATION;
               if (acidSplashEl) {

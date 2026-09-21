@@ -79,6 +79,7 @@
   };
 
   window.WEAPON_CONFIG = WEAPON_CONFIG;
+  const EXTINGUISHER_PRESSURE_COST = 20; // ตรงกับคอมเมนต์ใน WEAPON_CONFIG.fire_extinguisher (-20% ต่อการพ่น = พ่นได้ 5 ครั้ง)
 
   const ENTITY_CONFIG = {
     smiler: {
@@ -135,7 +136,39 @@
   const GAPPED_SEAM_OPEN_MS_NORMAL = 45000;   // มีเวลาเดินไปถึง EXIT พอสมควรตอนสภาพยังไม่ลึกมาก
   const GAPPED_SEAM_OPEN_MS_DEEP = 1800;      // Deep State (2.3): ความเป็นจริงเริ่มยุบตัว รอยแยกจะปิดเร็วกว่าเดิมมาก ยากขึ้นตามสเปก
 
+  // นับได้แค่ "ครั้งเดียวต่อการถูกลาก 1 ครั้ง" — ถ้าปล่อยให้กดซ้ำได้ ผู้เล่นแค่กดรัวก็ต้องมีสักครั้งที่ตกในช่วงจังหวะเสมอ
+  // กลไก "ถูกจังหวะ" จึงไม่มีความหมาย (และกดครั้งที่พลาดก่อนถึงช่วงจังหวะก็จะไปทับข้อความสำเร็จด้วย)
+  let lastSeamAttemptGrabStart = -1;
+  let lastSeamCueGrabStart = -1;
+  let seamWindowCueShown = false;
+
+  // เรียกทุกเฟรมระหว่างถูก The Gapped ลาก (องก์ 2) จาก render-loop.js — บอกผู้เล่นว่ามีกลไกนี้อยู่ และให้สัญญาณตอนถึงช่วงจังหวะ
+  // (เดิมไม่มีอะไรบอกผู้เล่นเลย ฉากจบจริงจึงยังแทบเป็นไปไม่ได้ในทางปฏิบัติ เพราะไม่มีใครรู้ว่าต้องกดอะไรตอนโดนลาก)
+  window.updateGappedSeamCue = function(elapsedMs) {
+    if (currentAct !== 2) return;
+    if (lastSeamCueGrabStart !== gappedGrabStartTime) {
+      lastSeamCueGrabStart = gappedGrabStartTime;
+      seamWindowCueShown = false;
+      showItemNotification(`<span style="color:#78f0d8;">🌀 รอยแยกกำลังดูดคุณเข้าไป!</span><br>กดโจมตี (R / คลิก / ปุ่มโจมตี) <b>ตอนจอวาบสีฟ้า</b> เพื่อรั้งรอยแยกไว้`);
+    }
+    if (!seamWindowCueShown && elapsedMs >= GAPPED_SEAM_WINDOW_START_MS) {
+      seamWindowCueShown = true;
+      const flash = document.getElementById('camera-flash-overlay');
+      if (flash) {
+        flash.style.background = '#78f0d8';
+        flash.style.opacity = '0.5';
+        setTimeout(() => {
+          flash.style.opacity = '0';
+          flash.style.background = '#ffffff';
+        }, GAPPED_SEAM_WINDOW_END_MS - GAPPED_SEAM_WINDOW_START_MS);
+      }
+    }
+  };
+
   function handleGappedSeamAttempt() {
+    if (lastSeamAttemptGrabStart === gappedGrabStartTime) return;
+    lastSeamAttemptGrabStart = gappedGrabStartTime;
+
     const elapsed = performance.now() - gappedGrabStartTime;
     if (elapsed >= GAPPED_SEAM_WINDOW_START_MS && elapsed <= GAPPED_SEAM_WINDOW_END_MS) {
       const gappedCfg = window.getEffectiveEntityConfig ? window.getEffectiveEntityConfig('gapped') : null;
@@ -363,7 +396,7 @@
       // แก้บั๊ก 5: ถังดับเพลิงเสียสารตอน "พ่น" จริง ไม่ใช่ตอน "ตีโดน" เท่านั้น
       // กันพ่นเปล่าไม่จำกัดครั้งตอนไม่มีเป้าหมายในระยะ/มุมโจมตี
       if (weapon.type === 'fire_extinguisher') {
-        weapon.pressure = Math.max(0, (weapon.pressure || 100) - 25);
+        weapon.pressure = Math.max(0, (weapon.pressure || 100) - EXTINGUISHER_PRESSURE_COST);
         if (weapon.pressure <= 0) {
           showItemNotification("ถังดับเพลิง: สารเคมีหมดเกลี้ยง!");
           removeWeaponFromInventory(weapon);
